@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from datetime import datetime
 from app.config import settings
 from app.utils.helpers import generate_token, is_token_expired
