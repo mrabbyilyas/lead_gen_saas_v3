@@ -1,5 +1,5 @@
 from typing import Generator
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from app.config import settings
@@ -42,7 +42,7 @@ def init_db() -> None:
             
             # Enable pg_trgm extension for similarity search
             try:
-                conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm;"))
                 conn.commit()
                 logger.info("pg_trgm extension enabled")
             except Exception as e:
