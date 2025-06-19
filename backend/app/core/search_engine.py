@@ -19,26 +19,32 @@ def find_exact_match(db: Session, company_name: str) -> Optional[CompanyAnalysis
     return result
 
 def find_fuzzy_matches(db: Session, company_name: str, similarity_threshold: float = 0.75) -> List[CompanyAnalysis]:
-    """Find fuzzy matches using PostgreSQL similarity"""
+    """Find fuzzy matches using basic pattern matching (Azure PostgreSQL compatible)"""
     sanitized_name = sanitize_company_name(company_name)
     
-    # Bidirectional partial matching + similarity
-    query = text("""
+    # Use LIKE pattern matching instead of similarity function
+    query = text(""" 
         SELECT * FROM company_analysis 
         WHERE 
-            LOWER(company_name) LIKE :partial_pattern
-            OR LOWER(:search_term) LIKE CONCAT('%', LOWER(company_name), '%')
-            OR similarity(LOWER(company_name), :search_term) > :threshold
-            OR similarity(LOWER(canonical_name), :search_term) > :threshold
+            LOWER(company_name) LIKE :partial_pattern 
+            OR LOWER(company_name) LIKE :reverse_pattern 
+            OR LOWER(canonical_name) LIKE :partial_pattern 
+            OR LOWER(canonical_name) LIKE :reverse_pattern 
         ORDER BY 
-            similarity(LOWER(company_name), :search_term) DESC,
-            similarity(LOWER(canonical_name), :search_term) DESC
+            CASE 
+                WHEN LOWER(company_name) = :search_term THEN 1 
+                WHEN LOWER(canonical_name) = :search_term THEN 2 
+                WHEN LOWER(company_name) LIKE :partial_pattern THEN 3 
+                WHEN LOWER(canonical_name) LIKE :partial_pattern THEN 4 
+                ELSE 5 
+            END, 
+            LENGTH(company_name) 
     """)
     
-    results = db.execute(query, {
-        "partial_pattern": f"%{sanitized_name}%",
-        "search_term": sanitized_name,
-        "threshold": similarity_threshold
+    results = db.execute(query, { 
+        "partial_pattern": f"%{sanitized_name}%", 
+        "reverse_pattern": f"{sanitized_name}%", 
+        "search_term": sanitized_name 
     }).fetchall()
     
     # Convert to CompanyAnalysis objects

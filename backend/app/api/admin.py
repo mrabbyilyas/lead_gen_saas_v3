@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from app.schemas.admin import UpdateGeminiKeyRequest, UpdateGeminiKeyResponse
 from app.core.gemini_client import update_gemini_api_key
 from app.core.auth import validate_token
@@ -7,7 +7,7 @@ from app.utils.exceptions import AuthenticationError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-def get_current_token(authorization: str = Depends()) -> str:
+def get_current_token(authorization: str = Header(...)) -> str:
     """Extract and validate bearer token"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")

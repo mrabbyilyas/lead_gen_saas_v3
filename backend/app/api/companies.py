@@ -1,5 +1,5 @@
 from typing import Union
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from app.schemas.company import CompanySearchRequest, CompanySearchResponse, CompanyNotFoundResponse
 from app.database.connection import get_db
@@ -12,7 +12,7 @@ from app.utils.exceptions import GeminiAPIError, CompanyNotFoundError
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
-def get_current_token(authorization: str = Depends()) -> str:
+def get_current_token(authorization: str = Header(...)) -> str:
     """Extract and validate bearer token"""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")
