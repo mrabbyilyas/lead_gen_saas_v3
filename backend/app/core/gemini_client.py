@@ -3,7 +3,8 @@ import time
 import re
 import json
 from typing import Dict, Any, Optional
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from app.config import settings
 from app.utils.logger import logger
 from app.utils.helpers import exponential_backoff_delay
@@ -88,7 +89,7 @@ def generate_company_analysis(company_name: str, max_retries: int = 3) -> Dict[s
             logger.info(f"Generating analysis for '{company_name}' (attempt {attempt + 1}/{max_retries})")
             
             client = genai.Client(api_key=current_gemini_api_key)
-            model = "gemini-2.5-flash-preview-05-20"
+            model = "gemini-2.5-flash"
             
             # Comprehensive prompt from Jupyter notebook
             contents = [
