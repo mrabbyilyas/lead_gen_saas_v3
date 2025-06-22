@@ -55,12 +55,89 @@ export async function GET(request: NextRequest) {
     }
     
     const result = await client.query(query, params);
-    const companies = result.rows.map(row => ({
-      ...row,
-      score: row.analysis_result?.diversity_score || row.analysis_result?.score || 0,
-      industry: row.analysis_result?.industry || 'Technology',
-      revenue_range: row.analysis_result?.revenue_range || '$1M-$10M'
-    }));
+    const companies = result.rows.map(row => {
+      // Parse analysis_result if it's a string
+      let analysisResult = row.analysis_result;
+      if (typeof analysisResult === 'string') {
+        try {
+          analysisResult = JSON.parse(analysisResult);
+        } catch (e) {
+          analysisResult = {};
+        }
+      }
+      
+      // Calculate AI score inline to avoid import issues
+      const calculateScore = (data: any) => {
+        // Check for existing simple scores first
+        if (data?.esg_risk?.social?.diversity_score > 0) return data.esg_risk.social.diversity_score;
+        if (data?.diversity_score > 0) return data.diversity_score;
+        if (data?.score > 0) return data.score;
+        
+        // Calculate composite score
+        let totalScore = 0;
+        let weights = 0;
+        
+        // Financial health
+        if (data?.financial_metrics?.profitability_metrics?.net_profit_margin > 0) {
+          const finScore = Math.min(data.financial_metrics.profitability_metrics.net_profit_margin / 5, 3);
+          totalScore += finScore * 0.3;
+          weights += 0.3;
+        }
+        
+        // Market position
+        if (data?.market_competition?.market_data?.current_market_share > 0) {
+          const marketScore = Math.min(data.market_competition.market_data.current_market_share / 10, 2.5);
+          totalScore += marketScore * 0.25;
+          weights += 0.25;
+        }
+        
+        // Innovation
+        if (data?.technology_operations?.rd_innovation?.innovation_score > 0) {
+          const innovScore = (data.technology_operations.rd_innovation.innovation_score / 5) * 2;
+          totalScore += innovScore * 0.2;
+          weights += 0.2;
+        }
+        
+        // ESG
+        if (data?.esg_risk?.environmental?.sustainability_score > 0) {
+          const esgScore = (data.esg_risk.environmental.sustainability_score / 100) * 1.5;
+          totalScore += esgScore * 0.15;
+          weights += 0.15;
+        }
+        
+        // Competitive moat
+        if (data?.market_competition?.competitive_analysis?.moat_strength > 0) {
+          const moatScore = (data.market_competition.competitive_analysis.moat_strength / 5) * 1.5;
+          totalScore += moatScore * 0.1;
+          weights += 0.1;
+        }
+        
+        return weights > 0 ? Math.min((totalScore / weights) * 10, 10) : 0;
+      };
+      
+      const extractedScore = calculateScore(analysisResult);
+      
+      const extractedIndustry = analysisResult?.company_basic_info?.industry_primary ||
+                               analysisResult?.industry ||
+                               analysisResult?.sector ||
+                               analysisResult?.business_type ||
+                               (analysisResult?.company_profile?.industry) ||
+                               null;
+      
+      const extractedRevenue = analysisResult?.company_basic_info?.revenue_estimate ||
+                              analysisResult?.revenue_range ||
+                              analysisResult?.revenue ||
+                              analysisResult?.annual_revenue ||
+                              (analysisResult?.financial_metrics?.revenue_range) ||
+                              null;
+      
+      return {
+        ...row,
+        score: extractedScore,
+        industry: extractedIndustry,
+        revenue_range: extractedRevenue
+      };
+    });
     
     return NextResponse.json({
       success: true,

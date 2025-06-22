@@ -1,0 +1,471 @@
+{
+    "esg_risk": {
+      "social": {
+        "diversity_score": 0,
+        "community_investment": 0,
+        "employee_satisfaction": 0
+      },
+      "governance": {
+        "governance_score": 34,
+        "board_independence": 0
+      },
+      "environmental": {
+        "esg_alignment": "High (Product Contribution)",
+        "carbon_footprint": 4000000,
+        "sustainability_score": 90
+      },
+      "risk_assessment": {
+        "market_risk": "Medium",
+        "financial_risk": "Medium",
+        "operational_risk": "Medium",
+        "overall_risk_level": "Medium"
+      }
+    },
+    "data_metadata": {
+      "quality": {
+        "data_gaps": [
+          "Specific breakdown of full-time, part-time, contractors (total headcount available)",
+          "Detailed unit economics (CAC, LTV, churn)",
+          "Exact CEO age (estimated)",
+          "CEO LinkedIn URL",
+          "Specific engineering/sales team sizes (total headcount available)",
+          "Detailed customer retention rate, NPS, CSAT scores (delivery/sales figures available)",
+          "Breakdown of revenue by highly specific product models beyond major segments",
+          "Internal CRM/ERP systems used",
+          "Specific cloud provider and monthly spend",
+          "Detailed R&D team size and specific technology stack languages",
+          "IP valuation and complete trademark registrations list",
+          "Numerical ESG scores from all major rating agencies (some sentiment/risk scores found)",
+          "Full list of all 1,359 sales/service/delivery centers and 7,000 Supercharger stations"
+        ],
+        "last_updated": "2025-06-22",
+        "confidence_level": 4,
+        "verification_status": "Verified - Public Company",
+        "data_collection_date": "2025-06-22"
+      },
+      "sources": {
+        "primary_sources": [
+          "https://www.tesla.com",
+          "https://ir.tesla.com",
+          "https://www.sec.gov/edgar/browse/?CIK=1318605"
+        ],
+        "interview_sources": [],
+        "secondary_sources": [
+          "Wikipedia (Tesla, Inc.) [1, 4, 11]",
+          "SEC.gov (10-K, 10-Q filings) [2, 12, 18, 29, 32, 34, 36, 39, 41]",
+          "Investopedia [7, 35, 40]",
+          "Statista [6]",
+          "Autovista24 [8, 16]",
+          "IEA [9]",
+          "GlobalData [11, 14]",
+          "Tracxn [20]",
+          "Teslarati [25]",
+          "Business Standard [21]",
+          "The Independent [26]",
+          "Reddit [38]",
+          "Simply Wall St [17]",
+          "WallStreetZen [23]",
+          "Moomoo [39]",
+          "Edmunds [24]",
+          "Design Gurus [28, 32]",
+          "FOREX.com [28]",
+          "NewswireJet [36]",
+          "Bloomberg LEI [35]",
+          "TipRanks.com [13, 37]",
+          "Stock Analysis on Net [20, 24]",
+          "ResearchGate [19, 40]",
+          "IIPRD [15]",
+          "Brainiac IP Solutions [8]",
+          "Venner Shipley [9]",
+          "Circulist [10]",
+          "Permutable AI [17]",
+          "GW Blogs - The George Washington University [22]",
+          "Fairfax Financial [23]",
+          "StockLight [33]"
+        ]
+      }
+    },
+    "customer_sales": {
+      "customer_base": {
+        "nps_score": 0,
+        "csat_score": 0,
+        "total_customers": 2300000,
+        "customer_growth_rate": -1.2,
+        "customer_retention_rate": 0
+      },
+      "sales_metrics": {
+        "win_rate": 0,
+        "conversion_rate": 0,
+        "average_deal_size": 0,
+        "average_sales_cycle_days": 0
+      },
+      "customer_concentration": {
+        "customer_concentration_risk": "Low",
+        "top_customer_revenue_percent": 0,
+        "top_10_customers_revenue_percent": 0
+      }
+    },
+    "growth_outlook": {
+      "exit_strategy": {
+        "exit_timeline_years": 0,
+        "ipo_readiness_score": 5,
+        "expected_exit_strategy": "Continued Public Company Growth"
+      },
+      "growth_strategy": {
+        "primary_strategy": "Market Expansion & New Product Development",
+        "acquisition_strategy": true,
+        "partnership_strategy": true,
+        "geographic_expansion_potential": "High"
+      }
+    },
+    "legal_compliance": {
+      "litigation": {
+        "active_cases": 0,
+        "settlement_amount_5_years": 0
+      },
+      "corporate_structure": {
+        "legal_entity_type": "Public Corporation (C5K7)",
+        "state_incorporation": "Delaware",
+        "regulatory_compliance_status": "Subject to ongoing scrutiny and litigation"
+      },
+      "intellectual_property": {
+        "ip_valuation": 0,
+        "patent_portfolio_size": 6993,
+        "trademark_registrations": 0
+      }
+    },
+    "financial_metrics": {
+      "revenue_data": {
+        "arr": 0,
+        "mrr": 0,
+        "revenue_2_years_ago": 81462000000,
+        "revenue_3_years_ago": 53823000000,
+        "revenue_4_years_ago": 31536000000,
+        "revenue_5_years_ago": 24578000000,
+        "revenue_cagr_3_year": 21,
+        "revenue_cagr_5_year": 33.3,
+        "current_year_revenue": 97700000000,
+        "previous_year_revenue": 96770000000,
+        "average_contract_value": 0,
+        "q1_revenue_current_year": 0,
+        "q2_revenue_current_year": 0,
+        "q3_revenue_current_year": 0,
+        "q4_revenue_current_year": 0,
+        "revenue_by_product_line_1": {
+          "amount": 10090000000,
+          "percentage": 10.3
+        },
+        "revenue_seasonality_index": 0,
+        "revenue_concentration_risk": "Low",
+        "one_time_revenue_percentage": 89.7,
+        "recurring_revenue_percentage": 10.3,
+        "revenue_by_geography_domestic": {
+          "amount": 0,
+          "percentage": 0
+        },
+        "revenue_by_geography_international": {
+          "amount": 0,
+          "percentage": 0
+        }
+      },
+      "balance_sheet": {
+        "total_debt": 11000000000,
+        "total_assets": 122100000000,
+        "total_equity": 72900000000,
+        "current_ratio": 1.65,
+        "current_assets": 44180000000,
+        "working_capital": 17471000000,
+        "total_liabilities": 49693000000,
+        "cash_runway_months": 0,
+        "current_liabilities": 26709000000,
+        "cash_and_equivalents": 16139000000,
+        "debt_to_equity_ratio": 0.15
+      },
+      "unit_economics": {
+        "cac": 0,
+        "grr": 0,
+        "ltv": 0,
+        "nrr": 0,
+        "arpa": 0,
+        "arpu": 0,
+        "ltv_cac_ratio": 0,
+        "annual_churn_rate": 0,
+        "cac_payback_months": 0,
+        "monthly_churn_rate": 0
+      },
+      "profitability_metrics": {
+        "cogs": 0,
+        "ebit": 7100000000,
+        "ebitda": 0,
+        "net_income": 7090000000,
+        "ebit_margin": 7.3,
+        "gross_profit": 16900000000,
+        "ebitda_margin": 0,
+        "gross_revenue": 97700000000,
+        "free_cash_flow": 8900000000,
+        "operating_income": 7100000000,
+        "operating_margin": 7.3,
+        "net_profit_margin": 7.3,
+        "operating_revenue": 97700000000,
+        "operating_expenses": 9686000000,
+        "gross_profit_margin": 17.3,
+        "free_cash_flow_margin": 9.1
+      }
+    },
+    "company_basic_info": {
+      "tax_id_ein": "N/A",
+      "company_age": 21,
+      "website_url": "https://www.tesla.com",
+      "company_name": "Tesla",
+      "email_domain": "tesla.com",
+      "company_stage": "Public (Mature Growth)",
+      "contact_email": "info@tesla.com",
+      "contact_phone": "+1 512-516-8177",
+      "facebook_page": "https://www.facebook.com/TeslaMotors",
+      "trade_name_dba": "N/A",
+      "twitter_handle": "Tesla",
+      "industry_primary": "Automotive",
+      "instagram_handle": "tesla",
+      "revenue_estimate": "$97.7 billion (2024)",
+      "headquarters_city": "Austin",
+      "industry_sic_code": "3711",
+      "total_contractors": 0,
+      "company_legal_name": "Tesla, Inc.",
+      "incorporation_date": "2003-07-01",
+      "industry_subsector": "Electric Vehicles, Energy Generation & Storage, AI & Robotics",
+      "business_model_type": "Direct-to-Consumer (D2C) & Integrated Energy Solutions",
+      "industry_naics_code": "336110",
+      "primary_website_url": "https://www.tesla.com",
+      "business_description": "Designs, manufactures, and sells battery electric vehicles (BEVs), stationary battery energy storage devices from home to grid-scale (Powerwall, Megapack), solar panels and solar shingles, and related products and services (e.g., Supercharging, vehicle insurance, Full Self-Driving software). Aims to accelerate the world's transition to sustainable energy.",
+      "headquarters_country": "United States",
+      "linkedin_company_url": "https://www.linkedin.com/company/tesla-motors/",
+      "headquarters_location": "Austin, Texas, U.S.",
+      "office_locations_list": [
+        "Austin, TX (Gigafactory Texas, HQ)",
+        "Fremont, CA (Factory)",
+        "Shanghai, China (Gigafactory Shanghai)",
+        "Berlin, Germany (Gigafactory Berlin-Brandenburg)",
+        "Lathrop, CA (Megafactory)",
+        "Palo Alto, CA (Engineering HQ)"
+      ],
+      "employee_count_estimate": "125,665 (2024)",
+      "headquarters_postal_code": "78725",
+      "headquarters_full_address": "1 Tesla Road, Austin, TX 78725, United States",
+      "total_full_time_employees": 125665,
+      "total_part_time_employees": 0,
+      "number_of_office_locations": 1359,
+      "company_registration_number": "LEI: 54930043XZGB27CTOV49",
+      "headquarters_state_province": "Texas"
+    },
+    "market_competition": {
+      "market_data": {
+        "sam": 0,
+        "tam": 0,
+        "market_position": "Market Leader (BEV, but declining share)",
+        "market_share_rank": 2,
+        "market_growth_rate": 60,
+        "current_market_share": 18
+      },
+      "competitive_analysis": {
+        "moat_strength": 4,
+        "barriers_to_entry": 5,
+        "direct_competitors": [
+          {
+            "name": "BYD",
+            "revenue": 0,
+            "market_share": 23.4
+          },
+          {
+            "name": "Volkswagen Group",
+            "revenue": 0,
+            "market_share": 5.9
+          },
+          {
+            "name": "General Motors",
+            "revenue": 0,
+            "market_share": 0
+          },
+          {
+            "name": "Ford Motor Company",
+            "revenue": 0,
+            "market_share": 7
+          },
+          {
+            "name": "NIO",
+            "revenue": 0,
+            "market_share": 0
+          },
+          {
+            "name": "Polestar",
+            "revenue": 0,
+            "market_share": 0
+          },
+          {
+            "name": "Lucid Group",
+            "revenue": 0,
+            "market_share": 0
+          },
+          {
+            "name": "Rivian",
+            "revenue": 0,
+            "market_share": 0
+          }
+        ],
+        "competitive_position": "Strong, but facing increasing competitive pressure and market share dilution.",
+        "potential_challenges": [
+          "Intensified competition from traditional OEMs and new EV players (BYD)",
+          "Reliance on Elon Musk's public persona and leadership",
+          "Regulatory scrutiny and recalls related to safety/Autopilot",
+          "High CapEx requirements for expansion",
+          "Aging product lineup (relative to newer competition)",
+          "Work-life balance and employee turnover concerns"
+        ],
+        "competitive_advantages": [
+          "Strong brand recognition and loyal customer base",
+          "Pioneering technology in EVs, batteries, and AI (FSD)",
+          "Extensive Supercharger network",
+          "Vertical integration (manufacturing, software, sales, service)",
+          "Direct-to-consumer sales model",
+          "Gigafactory scale and manufacturing innovation"
+        ]
+      }
+    },
+    "acquisition_scoring": {
+      "pe_scoring": {
+        "company_age_fit": true,
+        "acquisition_score": 0,
+        "revenue_range_fit": false,
+        "exit_readiness_level": "N/A",
+        "owner_age_indicators": "N/A",
+        "acquisition_complexity": "High",
+        "overall_opportunity_score": 0,
+        "succession_planning_signals": false
+      },
+      "acquisition_analysis": {
+        "industry_reputation": "Excellent",
+        "acquisition_barriers": [
+          "Prohibitive market capitalization for most PE firms",
+          "Public company structure and regulatory requirements",
+          "Founder (Elon Musk) control and influence",
+          "High capital expenditure needs for continued growth",
+          "Complex global operations and supply chains"
+        ],
+        "synergy_opportunities": "Strategic partnerships in AI, battery technology, charging infrastructure, or specific market segments (e.g., commercial vehicles, autonomous systems). Potential for large institutional investment in specific divisions or projects.",
+        "deal_timeline_estimate": "Long (for strategic investment/partnership)",
+        "due_diligence_priorities": [
+          "Future product roadmap and technology advancements (especially FSD, Optimus)",
+          "Battery production capabilities and supply chain resilience",
+          "Profitability trends in core automotive vs. energy/services segments",
+          "Global manufacturing efficiency and cost reduction initiatives",
+          "Regulatory compliance and litigation exposure"
+        ]
+      }
+    },
+    "valuation_investment": {
+      "funding_history": {
+        "last_funding_date": "2010-06-29",
+        "investment_history": "IPO & Subsequent Equity/Debt Offerings",
+        "last_funding_amount": 226000000,
+        "total_funding_raised": 408000000,
+        "last_funding_round_type": "IPO",
+        "number_of_funding_rounds": 26,
+        "last_funding_lead_investor": "N/A"
+      },
+      "valuation_metrics": {
+        "pe_ratio": 0,
+        "market_cap": 590000000000,
+        "enterprise_value": 0,
+        "current_valuation": 0,
+        "ev_ebitda_multiple": 0,
+        "ev_revenue_multiple": 0
+      },
+      "ownership_structure": {
+        "investor_ownership": 51.98,
+        "employee_stock_pool": 0,
+        "management_ownership": 12.88,
+        "number_of_shareholders": 0,
+        "founder_ownership_percentage": 12.77
+      }
+    },
+    "business_intelligence": {
+      "market_intelligence": {
+        "growth_signals": [
+          "Continued high demand for EVs globally, especially in emerging markets",
+          "Expansion of Gigafactory production capacity worldwide",
+          "Development and rollout of new products/services (Robotaxi, Optimus, FSD)",
+          "Focus on cost reduction and manufacturing efficiency",
+          "Strategic investments in AI initiatives"
+        ],
+        "recent_news_summary": "Recent news includes the debut of robotaxi service in Austin (June 2025), temporary production halts at Cybertruck and Model Y plants in Austin, stock fluctuations tied to Elon Musk's public statements and feuds, and plans to launch showrooms in India by July 2025. There's also ongoing competition impacting sales and market share. [12, 21, 25, 26, 33]",
+        "digital_disruption_risk": "Low (Tesla is a disruptor)",
+        "financial_health_indicators": [
+          "Strong cash and investments ($36.56 billion as of Dec 2024)",
+          "Improved operating cash flow ($14.92 billion in 2024)",
+          "Significant capital expenditure plans for future growth ($11+ billion annually through 2027)",
+          "Net income declined in 2024 (due to one-time tax benefit in 2023 and other factors)"
+        ],
+        "industry_consolidation_trend": "Medium"
+      },
+      "lead_gen_intelligence": {
+        "recommended_approach": "For potential partners/suppliers: Highly strategic, personalized outreach to specific departments. For new customer segments: Targeted digital campaigns, community engagement, leveraging existing customer base.",
+        "social_media_activity": "High",
+        "website_quality_score": 9,
+        "communication_preference": "Public statements, investor relations, direct digital channels",
+        "marketing_sophistication": "High"
+      }
+    },
+    "leadership_management": {
+      "founders": {
+        "founder_1_name": "Martin Eberhard",
+        "founder_1_role": "Co-founder (initial CEO)",
+        "founder_1_active": false,
+        "founder_1_equity": 0,
+        "number_of_founders": 5
+      },
+      "executives": {
+        "ceo_age": 52,
+        "ceo_name": "Elon Musk",
+        "cfo_name": "Vaibhav Taneja",
+        "cto_name": "Drew Baglino (Former VP of Technology, took over from JB Straubel)",
+        "ceo_linkedin": "N/A",
+        "ceo_background": "Co-founder of PayPal, founder of SpaceX and X (formerly Twitter). Known for bold vision and engineering focus.",
+        "ceo_tenure_years": 17,
+        "decision_maker_name": "Elon Musk",
+        "decision_maker_title": "CEO"
+      },
+      "team_metrics": {
+        "turnover_rate": 0,
+        "sales_team_size": 0,
+        "glassdoor_rating": 3.9,
+        "glassdoor_reviews": 0,
+        "average_tenure_years": 3.7,
+        "management_stability": "High (key leadership, but high-profile departures)",
+        "engineering_team_size": 0,
+        "employee_growth_rate_1_year": 0
+      }
+    },
+    "technology_operations": {
+      "rd_innovation": {
+        "rd_spending": 11000000000,
+        "patents_held": 6993,
+        "rd_team_size": 0,
+        "innovation_score": 5,
+        "rd_percent_revenue": 11.2
+      },
+      "infrastructure": {
+        "system_uptime": 0,
+        "scalability_score": 5,
+        "cloud_spend_monthly": 0,
+        "infrastructure_type": "Global Manufacturing (Gigafactories) & Charging Network (Superchargers)"
+      },
+      "technology_stack": {
+        "crm_system": "N/A",
+        "erp_system": "N/A",
+        "cloud_provider": "N/A",
+        "primary_languages": [
+          "N/A"
+        ],
+        "technology_adoption_level": "High"
+      }
+    }
+  }

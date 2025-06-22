@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Brain, Search, Building2, BarChart3, Database, Settings, LogOut, TrendingUp, Target, Users } from "lucide-react"
+import { Brain, Search, Building2, BarChart3, Database, LogOut, TrendingUp, Target } from "lucide-react"
 
 import { SearchForm } from "@/components/search-form"
 import {
@@ -52,21 +52,6 @@ const data = {
           title: "Market Insights",
           url: "/dashboard/market",
           icon: TrendingUp,
-        },
-        {
-          title: "Customer Profiles",
-          url: "/dashboard/profiles",
-          icon: Users,
-        },
-      ],
-    },
-    {
-      title: "Account",
-      items: [
-        {
-          title: "Settings",
-          url: "/dashboard/settings",
-          icon: Settings,
         },
       ],
     },
