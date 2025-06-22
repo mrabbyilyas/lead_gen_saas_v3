@@ -1259,7 +1259,7 @@ Midwest Technology Partnership (MTP) is a niche IT staffing and development firm
             
             generate_content_config = genai.types.GenerateContentConfig(
                 tools=[genai.types.Tool(google_search=genai.types.GoogleSearch())],
-                thinking_config=genai.types.ThinkingConfig(thinking_budget=-1),
+                thinking_config=types.ThinkingConfig(thinking_budget=-1)
             )
             
             response = client.models.generate_content_stream(
