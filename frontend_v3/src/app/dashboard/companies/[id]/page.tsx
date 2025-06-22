@@ -119,7 +119,7 @@ export default function CompanyDetailPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>{company.company_name}</BreadcrumbPage>
+                <BreadcrumbPage>{company.canonical_name || company.company_name}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -138,11 +138,11 @@ export default function CompanyDetailPage() {
               </Button>
               <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                 <Building2 className="h-8 w-8" />
-                {company.company_name}
+                {company.canonical_name || company.company_name}
               </h1>
               {company.canonical_name && company.canonical_name !== company.company_name && (
                 <p className="text-lg text-muted-foreground">
-                  Also known as: {company.canonical_name}
+                  Searched as: {company.company_name}
                 </p>
               )}
               <p className="text-muted-foreground">
@@ -292,7 +292,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Financial</span>
                             </div>
                             <div className="text-lg font-bold text-green-600">
-                              {scoreBreakdown.financial.toFixed(1)}/3
+                              {(scoreBreakdown.financial * (10.0 / 3.0)).toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.financial_metrics?.profitability_metrics?.net_profit_margin}% margin
@@ -308,7 +308,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Market</span>
                             </div>
                             <div className="text-lg font-bold text-blue-600">
-                              {scoreBreakdown.market.toFixed(1)}/2.5
+                              {(scoreBreakdown.market * (10.0 / 2.5)).toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.market_competition?.market_data?.current_market_share}% share
@@ -324,7 +324,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Innovation</span>
                             </div>
                             <div className="text-lg font-bold text-purple-600">
-                              {scoreBreakdown.innovation.toFixed(1)}/2
+                              {(scoreBreakdown.innovation * (10.0 / 2.0)).toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.technology_operations?.rd_innovation?.innovation_score}/5 R&D score
@@ -340,7 +340,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">ESG</span>
                             </div>
                             <div className="text-lg font-bold text-green-700">
-                              {scoreBreakdown.esg.toFixed(1)}/1.5
+                              {(scoreBreakdown.esg * (10.0 / 1.5)).toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.esg_risk?.environmental?.sustainability_score}/100 sustainability
@@ -356,7 +356,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Moat</span>
                             </div>
                             <div className="text-lg font-bold text-orange-600">
-                              {scoreBreakdown.moat.toFixed(1)}/1.5
+                              {(scoreBreakdown.moat * (10.0 / 1.5)).toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.market_competition?.competitive_analysis?.moat_strength}/5 strength
@@ -694,63 +694,68 @@ export default function CompanyDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-6 md:grid-cols-2">
+                      {/* Market Intelligence Sub-box */}
                       {company.analysis_result.business_intelligence.market_intelligence && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Market Intelligence</h4>
-                          
-                          {company.analysis_result.business_intelligence.market_intelligence.growth_signals && (
-                            <div>
-                              <h5 className="text-sm font-medium mb-2 text-green-700">Growth Signals</h5>
-                              <ul className="text-sm space-y-1 text-muted-foreground">
-                                {company.analysis_result.business_intelligence.market_intelligence.growth_signals.slice(0, 3).map((signal: string, index: number) => (
-                                  <li key={index} className="flex items-start gap-2">
-                                    <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    {signal}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          <div className="grid gap-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Digital Disruption Risk:</span>
-                              <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.digital_disruption_risk}</Badge>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Industry Consolidation:</span>
-                              <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.industry_consolidation_trend}</Badge>
+                        <div className="p-4 border rounded-lg bg-blue-50/50">
+                          <h4 className="font-medium text-green-700 mb-3 text-center">Market Intelligence</h4>
+                          <div className="space-y-4">
+                            {company.analysis_result.business_intelligence.market_intelligence.growth_signals && (
+                              <div>
+                                <h5 className="text-sm font-medium mb-2 text-green-700">Growth Signals</h5>
+                                <ul className="text-sm space-y-1 text-muted-foreground">
+                                  {company.analysis_result.business_intelligence.market_intelligence.growth_signals.slice(0, 3).map((signal: string, index: number) => (
+                                    <li key={index} className="flex items-start gap-2">
+                                      <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      {signal}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            <div className="grid gap-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Digital Disruption Risk:</span>
+                                <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.digital_disruption_risk}</Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Industry Consolidation:</span>
+                                <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.industry_consolidation_trend}</Badge>
+                              </div>
                             </div>
                           </div>
                         </div>
                       )}
                       
+                      {/* Lead Generation Intelligence Sub-box */}
                       {company.analysis_result.business_intelligence.lead_gen_intelligence && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Lead Generation Intelligence</h4>
-                          <div className="grid gap-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Website Quality:</span>
-                              <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.website_quality_score}/10</Badge>
+                        <div className="p-4 border rounded-lg bg-green-50/50">
+                          <h4 className="font-medium text-blue-700 mb-3 text-center">Lead Generation Intelligence</h4>
+                          <div className="space-y-4">
+                            <div className="grid gap-2 text-sm">
+                              <div className="flex justify-between">
+                                <span>Website Quality:</span>
+                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.website_quality_score}/10</Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Social Media Activity:</span>
+                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.social_media_activity}</Badge>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Marketing Sophistication:</span>
+                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.marketing_sophistication}</Badge>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Social Media Activity:</span>
-                              <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.social_media_activity}</Badge>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Marketing Sophistication:</span>
-                              <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.marketing_sophistication}</Badge>
-                            </div>
+                            
+                            {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach && (
+                              <div>
+                                <h5 className="text-sm font-medium mb-2 text-blue-700">Recommended Approach</h5>
+                                <p className="text-sm text-muted-foreground">
+                                  {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          
-                          {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach && (
-                            <div>
-                              <h5 className="text-sm font-medium mb-2 text-blue-700">Recommended Approach</h5>
-                              <p className="text-sm text-muted-foreground">
-                                {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach}
-                              </p>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>

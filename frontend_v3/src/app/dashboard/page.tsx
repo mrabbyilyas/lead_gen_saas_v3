@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building2, Search, TrendingUp, Users, DollarSign, BarChart3, Loader2, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart } from "lucide-react";
+import { Building2, Search, TrendingUp, Users, DollarSign, BarChart3, Loader2, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Brain, Clock } from "lucide-react";
 import { useCompanies, useDashboardStats, useDebounce } from "@/hooks/use-company-data";
 import { api } from "@/lib/api";
 import { SystemStatusIndicator } from "@/components/system-status";
@@ -35,6 +35,21 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<any>(null);
+  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<string>("");
+  const [elapsedTime, setElapsedTime] = useState(0);
+  
+  // Timer effect for AI search loading
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSearching) {
+      interval = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isSearching]);
   
   // Use debounced search to avoid too many API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -51,8 +66,16 @@ export default function DashboardPage() {
     
     setIsSearching(true);
     setSearchResult(null);
+    setAiAnalysisProgress("");
+    setElapsedTime(0);
     
     try {
+      // Set initial progress message
+      setAiAnalysisProgress("Searching existing database...");
+      
+      // Add a small delay to show the first message
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Try to use real backend API for company search
       const result = await api.searchCompany({ company_name: searchQuery.trim() });
       
@@ -67,6 +90,15 @@ export default function DashboardPage() {
           status: "not_found"
         });
       } else {
+        // If the analysis is new (just created), show the AI progress
+        const isNewAnalysis = result.created_at && 
+          (new Date().getTime() - new Date(result.created_at).getTime()) < 10000; // Within last 10 seconds
+        
+        if (isNewAnalysis) {
+          setAiAnalysisProgress("AI analysis completed successfully!");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         // Successful analysis response
         setSearchResult({
           company_name: result.company_name,
@@ -81,6 +113,12 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Company search error:", error);
       
+      // Check if this might be an AI analysis timeout (common for new companies)
+      if (error instanceof Error && error.message.includes('timeout')) {
+        setAiAnalysisProgress("AI analysis is taking longer than expected (1-5 minutes)...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
       // Fallback to demo mode for development
       setSearchResult({
         company_name: searchQuery,
@@ -90,6 +128,8 @@ export default function DashboardPage() {
       });
     } finally {
       setIsSearching(false);
+      setAiAnalysisProgress("");
+      setElapsedTime(0);
     }
   };
 
@@ -275,16 +315,40 @@ export default function DashboardPage() {
               
               {isSearching && (
                 <div className="mt-4 text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Analyzing company data with AI...
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Brain className="h-8 w-8 text-blue-500" />
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  </div>
+                  <p className="text-lg font-medium mb-2">AI Company Analysis</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {aiAnalysisProgress || "Analyzing company data with AI..."}
                   </p>
+                  <div className="bg-muted rounded-lg p-4 max-w-md mx-auto">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        <span>This process typically takes 1-5 minutes for new companies</span>
+                      </div>
+                      <div className="flex items-center gap-1 font-mono text-blue-600">
+                        <span>Elapsed:</span>
+                        <span>{Math.floor(elapsedTime / 60).toString().padStart(2, '0')}:{(elapsedTime % 60).toString().padStart(2, '0')}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      • Searching existing database<br/>
+                      • Generating AI analysis (if needed)<br/>
+                      • Processing financial metrics<br/>
+                      • Calculating intelligence score
+                    </div>
+                  </div>
                 </div>
               )}
               
               {searchResult && !isSearching && (
                 <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-2">{searchResult.company_name}</h4>
+                  <h4 className="font-medium mb-2">
+                    {searchResult.canonical_name || searchResult.company_name}
+                  </h4>
                   
                   {searchResult.status === "not_found" ? (
                     <>
@@ -328,7 +392,7 @@ export default function DashboardPage() {
                       </p>
                       {searchResult.canonical_name && searchResult.canonical_name !== searchResult.company_name && (
                         <p className="text-xs text-muted-foreground mb-3">
-                          Also known as: {searchResult.canonical_name}
+                          Searched as: {searchResult.company_name}
                         </p>
                       )}
                     </>
@@ -455,9 +519,13 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <div className="font-medium">{company.company_name}</div>
+                                <div className="font-medium">
+                                  {company.canonical_name || company.company_name}
+                                </div>
                                 {company.canonical_name && company.canonical_name !== company.company_name && (
-                                  <div className="text-xs text-muted-foreground">{company.canonical_name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Searched as: {company.company_name}
+                                  </div>
                                 )}
                               </div>
                             </div>

@@ -238,9 +238,13 @@ export default function CompaniesPage() {
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <div className="font-medium">{company.company_name}</div>
+                                <div className="font-medium">
+                                  {company.canonical_name || company.company_name}
+                                </div>
                                 {company.canonical_name && company.canonical_name !== company.company_name && (
-                                  <div className="text-xs text-muted-foreground">{company.canonical_name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Searched as: {company.company_name}
+                                  </div>
                                 )}
                               </div>
                             </div>

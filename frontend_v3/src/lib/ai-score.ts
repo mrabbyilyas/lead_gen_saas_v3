@@ -72,33 +72,51 @@ export function calculateAIScore(analysisResult: any): AIScoreBreakdown {
   // Financial health (0-3 points)
   if (analysisResult?.financial_metrics?.profitability_metrics?.net_profit_margin > 0) {
     const margin = analysisResult.financial_metrics.profitability_metrics.net_profit_margin;
-    scores.financial = Math.min(margin / 5, 3); // Normalize to 0-3 scale
-    hasAnyData = true;
+    // Apply minimum threshold and better scaling
+    if (margin >= 2) { // Minimum 2% profit margin to register
+      scores.financial = Math.min(Math.max(margin / 8, 0.5), 3); // Normalize to 0.5-3 scale
+      hasAnyData = true;
+    }
   }
 
   // Market position (0-2.5 points) 
   if (analysisResult?.market_competition?.market_data?.current_market_share > 0) {
     const marketShare = analysisResult.market_competition.market_data.current_market_share;
-    scores.market = Math.min(marketShare / 10, 2.5); // Normalize to 0-2.5 scale
-    hasAnyData = true;
+    // Apply minimum threshold and better scaling
+    if (marketShare >= 1) { // Minimum 1% market share to register
+      scores.market = Math.min(Math.max(marketShare / 15, 0.5), 2.5); // Normalize to 0.5-2.5 scale
+      hasAnyData = true;
+    }
   }
 
   // Innovation score (0-2 points)
   if (analysisResult?.technology_operations?.rd_innovation?.innovation_score > 0) {
-    scores.innovation = (analysisResult.technology_operations.rd_innovation.innovation_score / 5) * 2;
-    hasAnyData = true;
+    const innovationRaw = analysisResult.technology_operations.rd_innovation.innovation_score;
+    // Apply minimum threshold and better scaling
+    if (innovationRaw >= 1.5) { // Minimum 1.5/5 innovation score to register
+      scores.innovation = Math.max((innovationRaw / 5) * 2, 0.5); // Normalize with 0.5 minimum
+      hasAnyData = true;
+    }
   }
 
   // ESG factors (0-1.5 points)
   if (analysisResult?.esg_risk?.environmental?.sustainability_score > 0) {
-    scores.esg = (analysisResult.esg_risk.environmental.sustainability_score / 100) * 1.5;
-    hasAnyData = true;
+    const sustainabilityRaw = analysisResult.esg_risk.environmental.sustainability_score;
+    // Apply minimum threshold and better scaling
+    if (sustainabilityRaw >= 20) { // Minimum 20/100 sustainability score to register
+      scores.esg = Math.max((sustainabilityRaw / 100) * 1.5, 0.3); // Normalize with 0.3 minimum
+      hasAnyData = true;
+    }
   }
 
   // Competitive strength (0-1.5 points)
   if (analysisResult?.market_competition?.competitive_analysis?.moat_strength > 0) {
-    scores.moat = (analysisResult.market_competition.competitive_analysis.moat_strength / 5) * 1.5;
-    hasAnyData = true;
+    const moatRaw = analysisResult.market_competition.competitive_analysis.moat_strength;
+    // Apply minimum threshold and better scaling
+    if (moatRaw >= 1.5) { // Minimum 1.5/5 moat strength to register
+      scores.moat = Math.max((moatRaw / 5) * 1.5, 0.3); // Normalize with 0.3 minimum
+      hasAnyData = true;
+    }
   }
 
   // Calculate total with proper weights

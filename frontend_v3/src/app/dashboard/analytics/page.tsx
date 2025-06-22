@@ -21,20 +21,31 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart3, TrendingUp, TrendingDown, Users, Building2, Target, ArrowUpRight, RefreshCw, Download } from "lucide-react";
 import { useDashboardStats, useCompanies } from "@/hooks/use-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
+import { calculateAIScore } from "@/lib/ai-score";
 
 export default function AnalyticsPage() {
   // Fetch dashboard statistics and company data
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
   const { companies, loading: companiesLoading } = useCompanies(undefined, 100);
 
-  // Calculate additional analytics
+  // Calculate additional analytics using centralized AI scoring
   const getAnalytics = () => {
     if (!companies.length) return null;
 
-    const scoredCompanies = companies.filter(c => c.score && c.score > 0);
-    const highScoreCount = scoredCompanies.filter(c => c.score >= 8).length;
-    const mediumScoreCount = scoredCompanies.filter(c => c.score >= 6 && c.score < 8).length;
-    const lowScoreCount = scoredCompanies.filter(c => c.score < 6).length;
+    // Calculate AI scores for all companies using centralized system
+    const companiesWithScores = companies.map(company => {
+      const aiScore = calculateAIScore(company.analysis_result);
+      return {
+        ...company,
+        calculatedScore: aiScore.total,
+        hasValidScore: aiScore.hasData && aiScore.total > 0
+      };
+    });
+
+    const scoredCompanies = companiesWithScores.filter(c => c.hasValidScore);
+    const highScoreCount = scoredCompanies.filter(c => c.calculatedScore >= 8).length;
+    const mediumScoreCount = scoredCompanies.filter(c => c.calculatedScore >= 6 && c.calculatedScore < 8).length;
+    const lowScoreCount = scoredCompanies.filter(c => c.calculatedScore < 6).length;
     
     const industries = companies.reduce((acc, company) => {
       if (company.industry && company.industry !== 'Technology') {
@@ -54,7 +65,7 @@ export default function AnalyticsPage() {
       lowScoreCount,
       industries: topIndustries,
       averageScore: scoredCompanies.length > 0 
-        ? scoredCompanies.reduce((sum, c) => sum + c.score, 0) / scoredCompanies.length 
+        ? scoredCompanies.reduce((sum, c) => sum + c.calculatedScore, 0) / scoredCompanies.length 
         : 0,
       completionRate: companies.length > 0 
         ? (companies.filter(c => c.status === 'completed').length / companies.length * 100)
