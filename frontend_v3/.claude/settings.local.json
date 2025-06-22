@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest add:*)",
+      "WebFetch(domain:7t518eqnqw.space.minimax.io)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)",
+      "Bash(echo:*)"
+    ],
+    "deny": []
+  }
+}
