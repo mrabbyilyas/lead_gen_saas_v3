@@ -3,11 +3,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from 'pg';
 
-// Direct database connection
-const getDbClient = () => new Client({
-  connectionString: 'postgresql://lead_gen_admin:VFBZ%24dPcrI%29QyAag@leadgen-mvp-db.postgres.database.azure.com:5432/postgres?sslmode=require',
-  ssl: { rejectUnauthorized: false }
-});
+// Environment variable validation with Base64 password decoding
+const validateEnvironmentVariables = () => {
+  const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'DB_PORT'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  // Check for password (either encoded or plain)
+  const hasPassword = process.env.DB_PASSWORD_ENCODED || process.env.DB_PASSWORD;
+  if (!hasPassword) {
+    missing.push('DB_PASSWORD or DB_PASSWORD_ENCODED');
+  }
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}. Check your .env.local file.`);
+  }
+  
+  // Decode password if it's Base64 encoded
+  let password = '';
+  if (process.env.DB_PASSWORD_ENCODED) {
+    try {
+      password = Buffer.from(process.env.DB_PASSWORD_ENCODED, 'base64').toString();
+    } catch (error) {
+      console.error('Failed to decode Base64 password:', error);
+      password = process.env.DB_PASSWORD || '';
+    }
+  } else {
+    password = process.env.DB_PASSWORD || '';
+  }
+  
+  return {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: password,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT
+  };
+};
+
+// Direct database connection using environment variables
+const getDbClient = () => {
+  const config = validateEnvironmentVariables();
+  
+  // Use individual config properties instead of connection string to avoid encoding issues
+  return new Client({
+    host: config.host,
+    port: parseInt(config.port),
+    database: config.database,
+    user: config.user,
+    password: config.password, // Use password directly, not in URL
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 15000
+  });
+};
 
 // Demo stats that match your database
 const getDemoStats = () => ({

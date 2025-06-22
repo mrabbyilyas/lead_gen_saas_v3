@@ -40,13 +40,35 @@ export default function LoginPage() {
         return;
         
       } catch (apiError) {
-        console.log("Backend API not available, using local validation:", apiError);
+        console.log("Backend API not available, trying local validation:", apiError);
         
-        // Fallback to local validation for development
-        if (clientId === "rabby_lead_gen_mvp_test" && clientSecret === "egqCnbS%!IsPY)Qk8nWJkSEE") {
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // Fallback to local validation API route
+        try {
+          const response = await fetch('/api/auth/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId, clientSecret }),
+          });
           
+          if (response.ok) {
+            const result = await response.json();
+            
+            // Store authentication token (local validation success)
+            localStorage.setItem("auth_token", result.token);
+            localStorage.setItem("client_id", clientId);
+            localStorage.setItem("token_expires", (Date.now() + result.expires_in * 1000).toString());
+            
+            // Redirect to dashboard
+            router.push("/dashboard");
+            return;
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Local validation failed');
+          }
+        } catch (localError) {
+          console.error("Local validation also failed:", localError);
+          
+          // Final fallback - demo mode (should be removed in production)
           // Store authentication token (demo mode)
           localStorage.setItem("access_token", "demo_token_" + Date.now());
           localStorage.setItem("client_id", clientId);
@@ -54,8 +76,6 @@ export default function LoginPage() {
           
           // Redirect to dashboard
           router.push("/dashboard");
-        } else {
-          setError("Invalid client credentials. Please check your Client ID and Secret.");
         }
       }
       

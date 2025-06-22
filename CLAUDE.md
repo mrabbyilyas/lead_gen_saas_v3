@@ -52,7 +52,7 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 - Client ID/Secret authentication with JWT tokens
 - Token storage in localStorage with automatic refresh
 - Fallback demo mode when backend unavailable
-- Credentials: `client_id: rabby_lead_gen_mvp_test`, `client_secret: egqCnbS%!IsPY)Qk8nWJkSEE`
+- Credentials: Configured via environment variables (see .env.local)
 
 #### AI Score Calculation (`src/lib/ai-score.ts`)
 - Weighted scoring algorithm combining financial (30%), market (25%), innovation (20%), ESG (15%), moat (10%)
@@ -67,7 +67,7 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 #### Database Schema
 - **Main Table**: `company_analysis` with JSON analysis results
-- **Connection**: Azure PostgreSQL (leadgen-mvp-db.postgres.database.azure.com)
+- **Connection**: Azure PostgreSQL (configured via environment variables)
 - **Fallback**: Demo data when database unavailable
 
 ## API Endpoints & Integration
@@ -111,7 +111,8 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000  # Backend API URL
 
 ### Backend Environment Variables (see app/config.py)
 - Database connection, Gemini API key, JWT settings
-- Azure PostgreSQL credentials configured
+- Azure PostgreSQL credentials configured via .env file
+- All production credentials stored securely in environment variables
 
 ## Data Flow & State Management
 

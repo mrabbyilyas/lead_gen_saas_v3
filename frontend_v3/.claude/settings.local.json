@@ -8,7 +8,8 @@
       "Bash(curl:*)",
       "Bash(rm:*)",
       "Bash(echo:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

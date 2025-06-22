@@ -2,20 +2,51 @@
 
 import { Client } from 'pg';
 
-// Database configuration - using hardcoded credentials that work
-const dbConfig = {
-  host: 'leadgen-mvp-db.postgres.database.azure.com',
-  port: 5432,
-  database: 'postgres',
-  user: 'lead_gen_admin',
-  password: 'VFBZ$dPcrI)QyAag',
-  ssl: {
-    rejectUnauthorized: false,
-  },
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 15000,
+// Environment variable validation with Base64 password decoding
+const validateDatabaseConfig = () => {
+  const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  // Check for password (either encoded or plain)
+  const hasPassword = process.env.DB_PASSWORD_ENCODED || process.env.DB_PASSWORD;
+  if (!hasPassword) {
+    missing.push('DB_PASSWORD or DB_PASSWORD_ENCODED');
+  }
+  
+  if (missing.length > 0) {
+    console.warn(`Missing database environment variables: ${missing.join(', ')}. Using fallback values.`);
+  }
+  
+  // Decode password if it's Base64 encoded
+  let password = '';
+  if (process.env.DB_PASSWORD_ENCODED) {
+    try {
+      password = Buffer.from(process.env.DB_PASSWORD_ENCODED, 'base64').toString();
+    } catch (error) {
+      console.error('Failed to decode Base64 password:', error);
+      password = process.env.DB_PASSWORD || '';
+    }
+  } else {
+    password = process.env.DB_PASSWORD || '';
+  }
+  
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'postgres',
+    user: process.env.DB_USER || 'postgres',
+    password: password,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+  };
 };
+
+// Database configuration using environment variables
+const dbConfig = validateDatabaseConfig();
 
 // Company Analysis Interface (matching actual database schema)
 export interface CompanyAnalysis {
@@ -43,8 +74,17 @@ export interface DatabaseStats {
 
 class DatabaseService {
   private getClient(): Client {
-    // Create a new client for each request
-    return new Client(dbConfig);
+    // Create a new client for each request with explicit config
+    return new Client({
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      ssl: dbConfig.ssl,
+      connectionTimeoutMillis: dbConfig.connectionTimeoutMillis,
+      idleTimeoutMillis: dbConfig.idleTimeoutMillis
+    });
   }
 
   // Test database connection
@@ -53,13 +93,17 @@ class DatabaseService {
     try {
       console.log('Testing database connection to:', {
         host: dbConfig.host,
-        port: dbConfig.port,
         database: dbConfig.database,
-        user: dbConfig.user,
-        ssl: dbConfig.ssl
+        user: dbConfig.user
       });
       
-      await client.connect();
+      // Add connection timeout
+      const connectPromise = client.connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout after 15 seconds')), 15000)
+      );
+      
+      await Promise.race([connectPromise, timeoutPromise]);
       console.log('Client connected successfully, running test query...');
       
       const result = await client.query('SELECT NOW() as current_time, version() as db_version');
@@ -71,14 +115,17 @@ class DatabaseService {
     } catch (error) {
       console.error('Database connection failed:', {
         error: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
+        code: (error as any).code,
         host: dbConfig.host,
-        user: dbConfig.user,
-        ssl: dbConfig.ssl
+        user: dbConfig.user
       });
       return false;
     } finally {
-      await client.end();
+      try {
+        await client.end();
+      } catch (closeError) {
+        console.warn('Error closing client:', closeError);
+      }
     }
   }
 
