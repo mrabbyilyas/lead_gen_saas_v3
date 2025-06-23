@@ -8,6 +8,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'  # Only trigger when backend code changes
   workflow_dispatch:
 
 jobs:
@@ -25,25 +27,28 @@ jobs:
           python-version: '3.11'
 
       - name: Create and start virtual environment
+        working-directory: ./backend
         run: |
           python -m venv venv
           source venv/bin/activate
       
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        working-directory: ./backend
+        run: |
+          source venv/bin/activate
+          pip install -r requirements.txt
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        working-directory: ./backend
+        run: zip -r ../release.zip . -x "venv/*" "__pycache__/*" "*.pyc"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -62,7 +67,16 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
+      - name: Debug Azure Secrets
+        run: |
+          echo "Client ID length: ${#AZURE_CLIENT_ID}"
+          echo "Tenant ID length: ${#AZURE_TENANT_ID}"
+          echo "Subscription ID length: ${#AZURE_SUBSCRIPTION_ID}"
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01380813B22F4FBCACA521DFE9E20C0B }}
+          AZURE_TENANT_ID: ${{ secrets.AZUREAPPSERVICE_TENANTID_E8C3CEEE0CDD4111A37E1162DBF7E580 }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33F257BA3E8C41A486413317FD7A7D23 }}
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -76,4 +90,3 @@ jobs:
         with:
           app-name: 'lead-gen-saas-backend'
           slot-name: 'Production'
-          
