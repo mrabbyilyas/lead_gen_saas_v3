@@ -5,7 +5,7 @@ from app.config import settings
 from app.utils.helpers import generate_token, is_token_expired
 from app.utils.exceptions import AuthenticationError
 from app.utils.logger import logger
-from app.database.connection import get_db
+from app.database.connection import SessionLocal
 from app.database.models import AccessToken
 
 def authenticate_credentials(client_id: str, client_secret: str) -> bool:
@@ -25,7 +25,7 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
     expires_at = datetime.now() + timedelta(hours=settings.TOKEN_EXPIRE_HOURS)
     
     # Store token in database
-    db = next(get_db())
+    db = SessionLocal()
     try:
         db_token = AccessToken(
             token=token,
@@ -34,6 +34,7 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
         )
         db.add(db_token)
         db.commit()
+        db.refresh(db_token)  # Ensure the token is properly committed
         
         logger.info(f"Token created for client_id: {client_id}")
         return {
@@ -50,20 +51,24 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
 
 def validate_token(token: str) -> bool:
     """Validate access token"""
-    db = next(get_db())
+    db = SessionLocal()
     try:
         db_token = db.query(AccessToken).filter(AccessToken.token == token).first()
         
         if not db_token:
+            logger.debug(f"Token not found in database: {token[:10]}...")
             return False
         
         # Check if token is expired
-        if datetime.now() > db_token.expires_at:
+        current_time = datetime.now()
+        if current_time > db_token.expires_at:
+            logger.debug(f"Token expired: {token[:10]}... (expired at {db_token.expires_at})")
             # Clean up expired token
             db.delete(db_token)
             db.commit()
             return False
         
+        logger.debug(f"Token validated successfully: {token[:10]}... (expires at {db_token.expires_at})")
         return True
     except Exception as e:
         logger.error(f"Error validating token: {e}")
@@ -73,7 +78,7 @@ def validate_token(token: str) -> bool:
 
 def cleanup_expired_tokens() -> None:
     """Clean up expired tokens"""
-    db = next(get_db())
+    db = SessionLocal()
     try:
         current_time = datetime.now()
         expired_tokens = db.query(AccessToken).filter(AccessToken.expires_at < current_time).all()
