@@ -116,14 +116,14 @@ NEXT_PUBLIC_API_BASE_URL=https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadace
 ### Backend Environment Variables (see app/config.py and AZURE_ENVIRONMENT_VARIABLES.md)
 Azure App Service requires these environment variables:
 ```bash
-DATABASE_HOST=leadgen-mvp-db.postgres.database.azure.com
+DATABASE_HOST=<your_database_host>
 DATABASE_NAME=postgres
 DATABASE_PORT=5432
-DATABASE_USER=lead_gen_admin
-DATABASE_PASSWORD=VFBZ$dPcrI)QyAag
-CLIENT_ID=rabby_lead_gen_mvp_test
-CLIENT_SECRET=egqCnbS%!IsPY)Qk8nWJkSEE
-GEMINI_API_KEY=your_gemini_api_key
+DATABASE_USER=<your_database_user>
+DATABASE_PASSWORD=<your_database_password>
+CLIENT_ID=<your_client_id>
+CLIENT_SECRET=<your_client_secret>
+GEMINI_API_KEY=<your_gemini_api_key>
 ```
 
 ## Data Flow & State Management

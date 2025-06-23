@@ -135,7 +135,7 @@ export default function LoginPage() {
                   type="text"
                   placeholder="Enter your client ID"
                   required
-                  defaultValue="rabby_lead_gen_mvp_test"
+                  defaultValue=""
                   className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:bg-white/10"
                 />
               </div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Enter your client secret"
                   required
-                  defaultValue="egqCnbS%!IsPY)Qk8nWJkSEE"
+                  defaultValue=""
                   className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500 focus:bg-white/10"
                 />
               </div>
