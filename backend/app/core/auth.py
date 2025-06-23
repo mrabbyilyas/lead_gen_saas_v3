@@ -1,5 +1,5 @@
 from typing import Dict, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.config import settings
 from app.utils.helpers import generate_token, is_token_expired
@@ -22,8 +22,8 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
         raise AuthenticationError("Invalid credentials")
     
     token = generate_token()
-    # Use UTC to match database timezone handling
-    now_utc = datetime.utcnow()
+    # Use timezone-aware UTC to match database timezone handling
+    now_utc = datetime.now(timezone.utc)
     expires_at = now_utc + timedelta(hours=settings.TOKEN_EXPIRE_HOURS)
     
     # Store token in database
@@ -83,8 +83,8 @@ def validate_token(token: str) -> bool:
             logger.error(f"❌ TOKEN NOT FOUND: '{token}' (checked {len(all_tokens)} database tokens)")
             return False
         
-        # Check if token is expired (use UTC to match database)
-        current_time = datetime.utcnow()
+        # Check if token is expired (use timezone-aware UTC to match database)
+        current_time = datetime.now(timezone.utc)
         logger.info(f"⏰ Time check: current={current_time} UTC, expires={db_token.expires_at}")
         
         if current_time > db_token.expires_at:
@@ -108,8 +108,8 @@ def cleanup_expired_tokens() -> None:
     """Clean up expired tokens"""
     db = SessionLocal()
     try:
-        # Use UTC to match database timezone
-        current_time = datetime.utcnow()
+        # Use timezone-aware UTC to match database timezone
+        current_time = datetime.now(timezone.utc)
         expired_tokens = db.query(AccessToken).filter(AccessToken.expires_at < current_time).all()
         
         if expired_tokens:
