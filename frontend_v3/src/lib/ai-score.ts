@@ -119,7 +119,16 @@ export function calculateAIScore(analysisResult: any): AIScoreBreakdown {
     }
   }
 
-  // Calculate total with proper weights
+  // Scale all components to 0-10 for consistent display
+  const scaledScores = {
+    financial: scores.financial * (10 / 3),     // Scale 0-3 → 0-10
+    market: scores.market * (10 / 2.5),         // Scale 0-2.5 → 0-10  
+    innovation: scores.innovation * (10 / 2),   // Scale 0-2 → 0-10
+    esg: scores.esg * (10 / 1.5),              // Scale 0-1.5 → 0-10
+    moat: scores.moat * (10 / 1.5)             // Scale 0-1.5 → 0-10
+  };
+
+  // Calculate total with conservative averaging + caps approach
   const weights = {
     financial: 0.30,  // 30%
     market: 0.25,     // 25%
@@ -130,39 +139,57 @@ export function calculateAIScore(analysisResult: any): AIScoreBreakdown {
 
   let weightedSum = 0;
   let totalWeight = 0;
+  let componentCount = 0;
 
   // Only include components that have data
   if (scores.financial > 0) {
-    weightedSum += scores.financial * weights.financial;
+    weightedSum += scaledScores.financial * weights.financial;
     totalWeight += weights.financial;
+    componentCount++;
   }
   if (scores.market > 0) {
-    weightedSum += scores.market * weights.market;
+    weightedSum += scaledScores.market * weights.market;
     totalWeight += weights.market;
+    componentCount++;
   }
   if (scores.innovation > 0) {
-    weightedSum += scores.innovation * weights.innovation;
+    weightedSum += scaledScores.innovation * weights.innovation;
     totalWeight += weights.innovation;
+    componentCount++;
   }
   if (scores.esg > 0) {
-    weightedSum += scores.esg * weights.esg;
+    weightedSum += scaledScores.esg * weights.esg;
     totalWeight += weights.esg;
+    componentCount++;
   }
   if (scores.moat > 0) {
-    weightedSum += scores.moat * weights.moat;
+    weightedSum += scaledScores.moat * weights.moat;
     totalWeight += weights.moat;
+    componentCount++;
   }
 
-  // Calculate final score (normalize to 10-point scale)
-  const finalScore = totalWeight > 0 ? (weightedSum / totalWeight) * 10 : 0;
+  // Conservative averaging: apply 0.75 multiplier to prevent inflation
+  const conservativeScore = totalWeight > 0 ? (weightedSum / totalWeight) * 0.75 : 0;
+
+  // Apply completeness caps based on available data
+  const completnessCaps = {
+    1: 5.0,   // 1 component: max 5.0/10
+    2: 7.0,   // 2 components: max 7.0/10  
+    3: 8.5,   // 3 components: max 8.5/10
+    4: 9.5,   // 4 components: max 9.5/10
+    5: 10.0   // 5 components: max 10.0/10
+  };
+
+  const maxScore = completnessCaps[componentCount as keyof typeof completnessCaps] || 0;
+  const finalScore = Math.min(conservativeScore, maxScore);
 
   return {
-    financial: scores.financial,
-    market: scores.market,
-    innovation: scores.innovation,
-    esg: scores.esg,
-    moat: scores.moat,
-    total: Math.min(finalScore, 10),
+    financial: scaledScores.financial,
+    market: scaledScores.market,
+    innovation: scaledScores.innovation,
+    esg: scaledScores.esg,
+    moat: scaledScores.moat,
+    total: finalScore,
     hasData: hasAnyData,
     isSimpleScore: false,
     simpleScoreType: 'composite'

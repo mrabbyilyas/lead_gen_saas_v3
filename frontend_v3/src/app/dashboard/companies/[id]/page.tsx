@@ -292,7 +292,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Financial</span>
                             </div>
                             <div className="text-lg font-bold text-green-600">
-                              {(scoreBreakdown.financial * (10.0 / 3.0)).toFixed(1)}/10.0
+                              {scoreBreakdown.financial.toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.financial_metrics?.profitability_metrics?.net_profit_margin}% margin
@@ -308,7 +308,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Market</span>
                             </div>
                             <div className="text-lg font-bold text-blue-600">
-                              {(scoreBreakdown.market * (10.0 / 2.5)).toFixed(1)}/10.0
+                              {scoreBreakdown.market.toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.market_competition?.market_data?.current_market_share}% share
@@ -324,7 +324,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Innovation</span>
                             </div>
                             <div className="text-lg font-bold text-purple-600">
-                              {(scoreBreakdown.innovation * (10.0 / 2.0)).toFixed(1)}/10.0
+                              {scoreBreakdown.innovation.toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.technology_operations?.rd_innovation?.innovation_score}/5 R&D score
@@ -340,7 +340,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">ESG</span>
                             </div>
                             <div className="text-lg font-bold text-green-700">
-                              {(scoreBreakdown.esg * (10.0 / 1.5)).toFixed(1)}/10.0
+                              {scoreBreakdown.esg.toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.esg_risk?.environmental?.sustainability_score}/100 sustainability
@@ -356,7 +356,7 @@ export default function CompanyDetailPage() {
                               <span className="text-sm font-medium">Moat</span>
                             </div>
                             <div className="text-lg font-bold text-orange-600">
-                              {(scoreBreakdown.moat * (10.0 / 1.5)).toFixed(1)}/10.0
+                              {scoreBreakdown.moat.toFixed(1)}/10.0
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {company.analysis_result?.market_competition?.competitive_analysis?.moat_strength}/5 strength
