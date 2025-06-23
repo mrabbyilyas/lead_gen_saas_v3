@@ -55,6 +55,10 @@ ENABLE_ORYX_BUILD=true
 WEBSITES_CONTAINER_START_TIME_LIMIT=1800
 SCM_COMMAND_IDLE_TIMEOUT=1800
 
+# Worker Process Timeout (Critical for long Gemini requests)
+WEBSITES_WORKER_PROCESS_TIMEOUT=1800
+WEBSITES_IDLE_TIMEOUT=1800
+
 # Container Stability (Helps prevent restarts during long requests)
 WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
 ```
@@ -151,8 +155,11 @@ The `/companies/search` endpoint uses Gemini AI which can take 1-5 minutes to co
 
 ### Required Azure App Service Settings:
 ```
-WEBSITES_CONTAINER_START_TIME_LIMIT=1800  # 30 minutes container start timeout
-SCM_COMMAND_IDLE_TIMEOUT=1800            # 30 minutes idle timeout
+WEBSITES_CONTAINER_START_TIME_LIMIT=1800   # 30 minutes container start timeout
+SCM_COMMAND_IDLE_TIMEOUT=1800             # 30 minutes idle timeout
+WEBSITES_WORKER_PROCESS_TIMEOUT=1800      # 30 minutes worker process timeout
+WEBSITES_IDLE_TIMEOUT=1800                # 30 minutes request idle timeout
+WEBSITES_ENABLE_APP_SERVICE_STORAGE=true  # Container stability
 ```
 
 ### Gunicorn Configuration:
@@ -169,12 +176,14 @@ The `startup.sh` script is configured with:
 
 ## Troubleshooting
 1. **502 Bad Gateway on Search**: Check timeout configuration above
-2. **Deployment Fails**: Check GitHub Actions logs
-3. **Environment Variables**: Verify in App Service Configuration
-4. **Database Connection**: Test connection strings
-5. **Logs**: Use Log Stream for real-time debugging
-6. **Cold Starts**: Enable "Always On" setting
-7. **Gemini Timeout**: Verify `WEBSITES_CONTAINER_START_TIME_LIMIT` and `SCM_COMMAND_IDLE_TIMEOUT` are set
+2. **Worker Timeout (CRITICAL WORKER TIMEOUT)**: Add `WEBSITES_WORKER_PROCESS_TIMEOUT=1800` and `WEBSITES_IDLE_TIMEOUT=1800`
+3. **Worker Gets SIGKILL**: Azure is killing workers - ensure all timeout settings are configured
+4. **Authentication 401 Errors**: Fixed in latest deployment - tokens now work correctly
+5. **Deployment Fails**: Check GitHub Actions logs
+6. **Environment Variables**: Verify in App Service Configuration
+7. **Database Connection**: Test connection strings
+8. **Logs**: Use Log Stream for real-time debugging
+9. **Cold Starts**: Enable "Always On" setting
 
 ## Performance Optimization
 - **Always On**: Prevents cold starts

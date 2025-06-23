@@ -24,6 +24,8 @@ The `/companies/search` endpoint is returning 502 Bad Gateway errors AND tokens 
 ```
 WEBSITES_CONTAINER_START_TIME_LIMIT = 1800
 SCM_COMMAND_IDLE_TIMEOUT = 1800
+WEBSITES_WORKER_PROCESS_TIMEOUT = 1800
+WEBSITES_IDLE_TIMEOUT = 1800
 WEBSITES_ENABLE_APP_SERVICE_STORAGE = true
 ```
 
@@ -42,6 +44,18 @@ WEBSITES_ENABLE_APP_SERVICE_STORAGE = true
 3. Wait for deployment to complete
 4. **Database Migration**: The new `access_tokens` table will be created automatically on startup
 5. Test the `/companies/search` endpoint
+
+## ✅ Latest Status (2025-06-23)
+
+**Authentication Issue: RESOLVED** ✅
+- Token validation working correctly
+- 401 Unauthorized errors fixed
+- Database token storage working perfectly
+
+**Current Issue: Azure Worker Timeout** ❌
+- Workers getting killed after ~19 seconds (SIGKILL)
+- Need to add `WEBSITES_WORKER_PROCESS_TIMEOUT=1800` setting
+- Azure overriding Gunicorn timeout configuration
 
 ## Database Migration
 The new token storage system will automatically:
