@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -23,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Building2, TrendingUp, Users, DollarSign, BarChart3, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart } from "lucide-react";
-import { useCompanies, useDashboardStats, useDebounce } from "@/hooks/use-company-data";
+import { useCompanies, useDashboardStats } from "@/hooks/use-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { AsyncSearchForm } from "@/components/async-search-form";
 import { exportToCSV, exportToJSON, exportSummaryStats } from "@/lib/export";
@@ -31,17 +30,10 @@ import { formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  // Use debounced search to avoid too many API calls
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   
   // Fetch real data from database
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
-  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(
-    debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined, 
-    20
-  );
+  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(undefined, 20);
 
   // Handle async search completion
   const handleAsyncSearchComplete = (result: any) => {
@@ -91,19 +83,13 @@ export default function DashboardPage() {
   // Export handlers
   const handleExportCSV = () => {
     if (companies.length > 0) {
-      const filename = debouncedSearchQuery 
-        ? `companies_search_${debouncedSearchQuery.replace(/[^a-zA-Z0-9]/g, '_')}` 
-        : 'companies_export';
-      exportToCSV(companies, filename);
+      exportToCSV(companies, 'companies_export');
     }
   };
 
   const handleExportJSON = () => {
     if (companies.length > 0) {
-      const filename = debouncedSearchQuery 
-        ? `companies_search_${debouncedSearchQuery.replace(/[^a-zA-Z0-9]/g, '_')}` 
-        : 'companies_export';
-      exportToJSON(companies, filename);
+      exportToJSON(companies, 'companies_export');
     }
   };
 
@@ -245,9 +231,7 @@ export default function DashboardPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>
-                    {debouncedSearchQuery ? `Search Results for "${debouncedSearchQuery}"` : 'Recent Company Analyses'}
-                  </CardTitle>
+                  <CardTitle>Recent Company Analyses</CardTitle>
                   <CardDescription>
                     {companiesLoading 
                       ? 'Loading company data...' 
@@ -300,7 +284,7 @@ export default function DashboardPage() {
                     ) : companies.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          {debouncedSearchQuery ? 'No companies found matching your search.' : 'No company data available.'}
+                          No company data available.
                         </TableCell>
                       </TableRow>
                     ) : (
