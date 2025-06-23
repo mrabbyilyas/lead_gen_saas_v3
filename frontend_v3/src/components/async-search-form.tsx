@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function AsyncSearchForm({
 }: AsyncSearchFormProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchState, searchActions] = useAsyncCompanySearch();
+  const hasCalledComplete = useRef(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +28,7 @@ export function AsyncSearchForm({
     if (!query) return;
 
     try {
+      hasCalledComplete.current = false; // Reset completion flag
       onSearchStart?.();
       await searchActions.startSearch(query);
     } catch (error) {
@@ -34,10 +36,13 @@ export function AsyncSearchForm({
     }
   };
 
-  // Call onSearchComplete when result is available
-  if (searchState.result && onSearchComplete) {
-    onSearchComplete(searchState.result);
-  }
+  // Call onSearchComplete when result is available (in useEffect to avoid render issues)
+  useEffect(() => {
+    if (searchState.result && onSearchComplete && !hasCalledComplete.current) {
+      hasCalledComplete.current = true;
+      onSearchComplete(searchState.result);
+    }
+  }, [searchState.result, onSearchComplete]);
 
   const isSearchDisabled = searchState.isSearching || !searchQuery.trim();
 
