@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -40,6 +40,7 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:3000",  # Local development
     "http://127.0.0.1:3000",  # Local development alternative
+    "https://localhost:3000",  # Local development HTTPS
 ]
 
 # Add production origins from environment variables
@@ -54,6 +55,10 @@ if not settings.DEBUG:
         allowed_origins.append(f"https://{vercel_app}.vercel.app")
 else:
     # Development mode - allow all origins
+    allowed_origins = ["*"]
+
+# For debugging CORS in development, always allow localhost
+if settings.DEBUG:
     allowed_origins = ["*"]
 
 app.add_middleware(
@@ -93,6 +98,8 @@ async def get_stats(authorization: str = Header(...)):
     from app.database.connection import get_db
     from app.database.models import CompanyAnalysis
     from sqlalchemy.orm import Session
+    from sqlalchemy import func, Integer, Float
+    from datetime import datetime, timedelta
     
     # Validate token
     if not authorization or not authorization.startswith("Bearer "):
@@ -112,13 +119,12 @@ async def get_stats(authorization: str = Header(...)):
         
         # Get high score leads (you can adjust the criteria)
         high_score_leads = db.query(CompanyAnalysis).filter(
-            CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(db.Integer) > 3
+            CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(Integer) > 3
         ).count()
         
         # Get average score
-        from sqlalchemy import func
         avg_result = db.query(
-            func.avg(CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(db.Float))
+            func.avg(CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(Float))
         ).scalar()
         average_score = round(float(avg_result or 0), 1)
         
@@ -129,7 +135,6 @@ async def get_stats(authorization: str = Header(...)):
         success_rate = round((success_count / total_companies * 100) if total_companies > 0 else 0)
         
         # Get recent analyses (last 30 days)
-        from datetime import datetime, timedelta
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         recent_analyses_count = db.query(CompanyAnalysis).filter(
             CompanyAnalysis.created_at >= thirty_days_ago

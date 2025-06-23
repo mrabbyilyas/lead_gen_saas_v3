@@ -1,7 +1,7 @@
-from typing import Union
-from fastapi import APIRouter, HTTPException, Depends, Header
+from typing import Union, Optional
+from fastapi import APIRouter, HTTPException, Depends, Header, Query
 from sqlalchemy.orm import Session
-from app.schemas.company import CompanySearchRequest, CompanySearchResponse, CompanyNotFoundResponse
+from app.schemas.company import CompanySearchRequest, CompanySearchResponse, CompanyNotFoundResponse, CompanyListResponse
 from app.schemas.async_job import AsyncJobCreate, AsyncJobResponse, AsyncJobStatus
 from app.database.connection import get_db
 from app.database.models import CompanyAnalysis

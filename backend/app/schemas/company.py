@@ -17,3 +17,9 @@ class CompanyNotFoundResponse(BaseModel):
     error: str
     message: str
     suggestions: Optional[List[str]] = None
+
+class CompanyListResponse(BaseModel):
+    companies: List[CompanySearchResponse]
+    total: int
+    limit: int
+    offset: int
