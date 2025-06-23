@@ -29,7 +29,7 @@ import { SystemStatusIndicator } from "@/components/system-status";
 import { AsyncSearchForm } from "@/components/async-search-form";
 import { BackendStatus } from "@/components/backend-status";
 import { exportToCSV, exportToJSON } from "@/lib/export";
-import { formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
+import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function CompaniesPage() {
   const router = useRouter();
@@ -57,6 +57,19 @@ export default function CompaniesPage() {
   const handleSearchStart = () => {
     // Could show a toast or update UI state
     console.log('Search started...');
+  };
+
+  // Parse analysis result for display - using correct paths from individual company page
+  const getAnalysisData = (analysisResult: any) => {
+    if (!analysisResult || typeof analysisResult !== 'object') {
+      return null;
+    }
+    
+    return {
+      industry: analysisResult?.company_basic_info?.industry_primary || null,
+      revenueRange: analysisResult?.company_basic_info?.revenue_estimate || null,
+      diversityScore: analysisResult.diversity_score || 0
+    };
   };
 
   // Format date helper
@@ -258,70 +271,76 @@ export default function CompaniesPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      companies.map((company) => (
-                        <TableRow key={company.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">
-                                  {company.canonical_name || company.company_name}
-                                </div>
-                                {company.canonical_name && company.canonical_name !== company.company_name && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Searched as: {company.company_name}
+                      companies.map((company) => {
+                        const analysisData = getAnalysisData(company.analysis_result);
+                        const scoreBreakdown = calculateAIScore(company.analysis_result);
+                        const aiScore = scoreBreakdown?.total;
+                        
+                        return (
+                          <TableRow key={company.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <div className="font-medium">
+                                    {company.canonical_name || company.company_name}
                                   </div>
-                                )}
+                                  {company.canonical_name && company.canonical_name !== company.company_name && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Searched as: {company.company_name}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {company.industry ? (
-                              <Badge variant="secondary" className="text-xs">
-                                {company.industry}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {company.revenue_range || '-'}
-                          </TableCell>
-                          <TableCell>
-                            {company.score ? (
+                            </TableCell>
+                            <TableCell>
+                              {analysisData?.industry ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  {analysisData.industry}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {analysisData?.revenueRange || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {aiScore ? (
+                                <Badge 
+                                  variant={getScoreBadgeVariant(aiScore)}
+                                  className="font-mono"
+                                >
+                                  {formatAIScore(aiScore)}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <Badge 
-                                variant={getScoreBadgeVariant(company.score)}
-                                className="font-mono"
+                                variant={company.status === 'completed' ? "outline" : "secondary"}
+                                className={company.status === 'completed' ? "text-green-600 border-green-600" : ""}
                               >
-                                {formatAIScore(company.score)}
+                                {company.status}
                               </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={company.status === 'completed' ? "outline" : "secondary"}
-                              className={company.status === 'completed' ? "text-green-600 border-green-600" : ""}
-                            >
-                              {company.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(company.created_at.toString())}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              title="View Analysis"
-                              onClick={() => handleViewCompany(company.id)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(company.created_at.toString())}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                title="View Analysis"
+                                onClick={() => handleViewCompany(company.id)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

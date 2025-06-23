@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Target, TrendingUp, Filter, Search, Building2, Eye, Award, Star } from "lucide-react";
 import { useCompanies, useDebounce } from "@/hooks/use-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
-import { formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
+import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function ScoringPage() {
   const router = useRouter();
@@ -46,19 +46,37 @@ export default function ScoringPage() {
     100
   );
 
+  // Parse analysis result for display - using correct paths from individual company page
+  const getAnalysisData = (analysisResult: any) => {
+    if (!analysisResult || typeof analysisResult !== 'object') {
+      return null;
+    }
+    
+    return {
+      industry: analysisResult?.company_basic_info?.industry_primary || null,
+      revenueRange: analysisResult?.company_basic_info?.revenue_estimate || null,
+      diversityScore: analysisResult.diversity_score || 0
+    };
+  };
+
   // Filter and sort companies based on scoring criteria
   const getFilteredCompanies = () => {
     let filtered = companies.filter(company => {
-      const score = company.score || 0;
+      const scoreBreakdown = calculateAIScore(company.analysis_result);
+      const score = scoreBreakdown?.total || 0;
+      const analysisData = getAnalysisData(company.analysis_result);
+      
       const matchesScore = score >= minScore[0] && score <= maxScore[0];
-      const matchesIndustry = !industryFilter || industryFilter === "all" || company.industry === industryFilter;
+      const matchesIndustry = !industryFilter || industryFilter === "all" || analysisData?.industry === industryFilter;
       return matchesScore && matchesIndustry;
     });
 
     // Sort companies
     filtered.sort((a, b) => {
       if (sortBy === "score") {
-        return (b.score || 0) - (a.score || 0);
+        const scoreA = calculateAIScore(a.analysis_result)?.total || 0;
+        const scoreB = calculateAIScore(b.analysis_result)?.total || 0;
+        return scoreB - scoreA;
       } else if (sortBy === "name") {
         return a.company_name.localeCompare(b.company_name);
       } else if (sortBy === "date") {
@@ -364,75 +382,81 @@ export default function ScoringPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredCompanies.map((company, index) => (
-                        <TableRow key={company.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{company.company_name}</div>
-                                {company.canonical_name && company.canonical_name !== company.company_name && (
-                                  <div className="text-xs text-muted-foreground">{company.canonical_name}</div>
+                      filteredCompanies.map((company, index) => {
+                        const analysisData = getAnalysisData(company.analysis_result);
+                        const scoreBreakdown = calculateAIScore(company.analysis_result);
+                        const aiScore = scoreBreakdown?.total;
+                        
+                        return (
+                          <TableRow key={company.id}>
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <div className="font-medium">{company.company_name}</div>
+                                  {company.canonical_name && company.canonical_name !== company.company_name && (
+                                    <div className="text-xs text-muted-foreground">{company.canonical_name}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {aiScore ? (
+                                  <>
+                                    <Badge 
+                                      variant={getScoreBadgeVariant(aiScore)}
+                                      className="font-mono"
+                                    >
+                                      {formatAIScore(aiScore)}
+                                    </Badge>
+                                    {index < 3 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        #{index + 1}
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">Not scored</span>
                                 )}
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {company.score ? (
-                                <>
-                                  <Badge 
-                                    variant={getScoreBadgeVariant(company.score)}
-                                    className="font-mono"
-                                  >
-                                    {formatAIScore(company.score)}
-                                  </Badge>
-                                  {index < 3 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      #{index + 1}
-                                    </Badge>
-                                  )}
-                                </>
+                            </TableCell>
+                            <TableCell>
+                              {analysisData?.industry ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  {analysisData.industry}
+                                </Badge>
                               ) : (
-                                <span className="text-muted-foreground text-sm">Not scored</span>
+                                <span className="text-muted-foreground text-sm">-</span>
                               )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {company.industry ? (
-                              <Badge variant="secondary" className="text-xs">
-                                {company.industry}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {analysisData?.revenueRange || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={company.status === 'completed' ? "outline" : "secondary"}
+                                className={company.status === 'completed' ? "text-green-600 border-green-600" : ""}
+                              >
+                                {company.status}
                               </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {company.revenue_range || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={company.status === 'completed' ? "outline" : "secondary"}
-                              className={company.status === 'completed' ? "text-green-600 border-green-600" : ""}
-                            >
-                              {company.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(company.created_at.toString())}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              title="View Full Analysis"
-                              onClick={() => handleViewCompany(company.id)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(company.created_at.toString())}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                title="View Full Analysis"
+                                onClick={() => handleViewCompany(company.id)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
