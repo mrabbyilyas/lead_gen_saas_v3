@@ -54,6 +54,9 @@ ENABLE_ORYX_BUILD=true
 # Timeout Configuration (Required for Gemini API calls)
 WEBSITES_CONTAINER_START_TIME_LIMIT=1800
 SCM_COMMAND_IDLE_TIMEOUT=1800
+
+# Container Stability (Helps prevent restarts during long requests)
+WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
 ```
 
 ### 4. Startup Configuration

@@ -36,6 +36,9 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     """Initialize database tables"""
     try:
+        # Import models to ensure they're registered with metadata
+        from app.database.models import CompanyAnalysis, AccessToken
+        
         # Test connection first
         with engine.connect() as conn:
             logger.info("Database connection successful")

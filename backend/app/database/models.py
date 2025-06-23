@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from app.database.connection import Base
@@ -17,3 +17,16 @@ class CompanyAnalysis(Base):
     
     def __repr__(self) -> str:
         return f"<CompanyAnalysis(id={self.id}, company_name='{self.company_name}')>"
+
+
+class AccessToken(Base):
+    __tablename__ = "access_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String(255), nullable=False, unique=True, index=True)
+    client_id = Column(String(255), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    
+    def __repr__(self) -> str:
+        return f"<AccessToken(id={self.id}, client_id='{self.client_id}', expires_at='{self.expires_at}')>"
