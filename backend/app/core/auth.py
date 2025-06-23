@@ -22,7 +22,9 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
         raise AuthenticationError("Invalid credentials")
     
     token = generate_token()
-    expires_at = datetime.now() + timedelta(hours=settings.TOKEN_EXPIRE_HOURS)
+    # Use UTC to match database timezone handling
+    now_utc = datetime.utcnow()
+    expires_at = now_utc + timedelta(hours=settings.TOKEN_EXPIRE_HOURS)
     
     # Store token in database
     db = SessionLocal()
@@ -36,7 +38,7 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
         db.commit()
         db.refresh(db_token)  # Ensure the token is properly committed
         
-        logger.info(f"Token created for client_id: {client_id}")
+        logger.info(f"Token created for client_id: {client_id}, expires at: {expires_at} UTC")
         return {
             "access_token": token,
             "token_type": "bearer",
@@ -59,16 +61,16 @@ def validate_token(token: str) -> bool:
             logger.debug(f"Token not found in database: {token[:10]}...")
             return False
         
-        # Check if token is expired
-        current_time = datetime.now()
+        # Check if token is expired (use UTC to match database)
+        current_time = datetime.utcnow()
         if current_time > db_token.expires_at:
-            logger.debug(f"Token expired: {token[:10]}... (expired at {db_token.expires_at})")
+            logger.debug(f"Token expired: {token[:10]}... (current: {current_time} UTC, expired at: {db_token.expires_at})")
             # Clean up expired token
             db.delete(db_token)
             db.commit()
             return False
         
-        logger.debug(f"Token validated successfully: {token[:10]}... (expires at {db_token.expires_at})")
+        logger.debug(f"Token validated successfully: {token[:10]}... (current: {current_time} UTC, expires at: {db_token.expires_at})")
         return True
     except Exception as e:
         logger.error(f"Error validating token: {e}")
@@ -80,7 +82,8 @@ def cleanup_expired_tokens() -> None:
     """Clean up expired tokens"""
     db = SessionLocal()
     try:
-        current_time = datetime.now()
+        # Use UTC to match database timezone
+        current_time = datetime.utcnow()
         expired_tokens = db.query(AccessToken).filter(AccessToken.expires_at < current_time).all()
         
         if expired_tokens:
