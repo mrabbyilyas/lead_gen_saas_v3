@@ -37,7 +37,7 @@ def init_db() -> None:
     """Initialize database tables"""
     try:
         # Import models to ensure they're registered with metadata
-        from app.database.models import CompanyAnalysis, AccessToken
+        from app.database.models import CompanyAnalysis, AccessToken, AsyncJob
         
         # Test connection first
         with engine.connect() as conn:

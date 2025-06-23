@@ -30,3 +30,20 @@ class AccessToken(Base):
     
     def __repr__(self) -> str:
         return f"<AccessToken(id={self.id}, client_id='{self.client_id}', expires_at='{self.expires_at}')>"
+
+
+class AsyncJob(Base):
+    __tablename__ = "async_jobs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(String(255), nullable=False, unique=True, index=True)
+    company_name = Column(String(255), nullable=False)
+    status = Column(String(50), nullable=False, default="processing")  # processing, completed, failed
+    result = Column(JSONB, nullable=True)
+    error_message = Column(Text, nullable=True)
+    progress_message = Column(String(255), nullable=True, default="Starting analysis...")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    def __repr__(self) -> str:
+        return f"<AsyncJob(id={self.id}, job_id='{self.job_id}', status='{self.status}')>"

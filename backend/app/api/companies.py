@@ -2,13 +2,16 @@ from typing import Union
 from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 from app.schemas.company import CompanySearchRequest, CompanySearchResponse, CompanyNotFoundResponse
+from app.schemas.async_job import AsyncJobCreate, AsyncJobResponse, AsyncJobStatus
 from app.database.connection import get_db
 from app.database.models import CompanyAnalysis
 from app.core.auth import validate_token
 from app.core.search_engine import search_company, save_company_analysis
 from app.core.gemini_client import generate_company_analysis
+from app.core.async_processor import create_async_job, get_job_status
 from app.utils.logger import logger
 from app.utils.exceptions import GeminiAPIError, CompanyNotFoundError
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -124,4 +127,61 @@ async def get_company_analysis(
         raise
     except Exception as e:
         logger.error(f"Error retrieving company {company_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/search/async", response_model=AsyncJobResponse)
+async def search_company_async(
+    request: CompanySearchRequest,
+    token: str = Depends(get_current_token)
+) -> AsyncJobResponse:
+    """Start async company search - returns immediately with job_id"""
+    
+    try:
+        company_name = request.company_name.strip()
+        if not company_name:
+            raise HTTPException(status_code=400, detail="Company name cannot be empty")
+        
+        logger.info(f"🚀 Starting async search for company: '{company_name}'")
+        
+        # Create async job and start background processing
+        job_id = create_async_job(company_name)
+        
+        # Estimate completion time (5 minutes)
+        estimated_completion = datetime.now(timezone.utc) + timedelta(minutes=5)
+        
+        return AsyncJobResponse(
+            job_id=job_id,
+            status="processing",
+            progress_message="Starting company analysis...",
+            created_at=datetime.now(timezone.utc),
+            estimated_completion=estimated_completion
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting async search: {e}")
+        raise HTTPException(status_code=500, detail="Failed to start analysis")
+
+
+@router.get("/jobs/{job_id}/status", response_model=AsyncJobStatus)
+async def get_job_status_endpoint(
+    job_id: str,
+    token: str = Depends(get_current_token)
+) -> AsyncJobStatus:
+    """Get status of async job"""
+    
+    try:
+        job_status = get_job_status(job_id)
+        
+        if not job_status:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        return AsyncJobStatus(**job_status)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting job status: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
