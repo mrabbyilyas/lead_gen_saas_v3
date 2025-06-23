@@ -67,6 +67,8 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 #### Database Schema
 - **Main Table**: `company_analysis` with JSON analysis results
+- **Async Jobs**: `async_jobs` table for background processing
+- **Authentication**: `access_tokens` table for database-backed token storage
 - **Connection**: Azure PostgreSQL (configured via environment variables)
 - **Fallback**: Demo data when database unavailable
 
@@ -78,6 +80,8 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 ### Company Intelligence
 - `POST /companies/search` - Search company by name, triggers AI analysis if needed
+- `POST /companies/search/async` - Start async company analysis (returns immediately with job_id)
+- `GET /companies/jobs/{job_id}/status` - Check status of async analysis job
 - `GET /companies/{id}` - Retrieve specific company analysis
 - `PUT /admin/gemini-key` - Update Gemini API key (admin only)
 
@@ -106,13 +110,21 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 ### Frontend Environment Variables
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000  # Backend API URL
+NEXT_PUBLIC_API_BASE_URL=https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadacentral-01.azurewebsites.net  # Azure Backend URL
 ```
 
-### Backend Environment Variables (see app/config.py)
-- Database connection, Gemini API key, JWT settings
-- Azure PostgreSQL credentials configured via .env file
-- All production credentials stored securely in environment variables
+### Backend Environment Variables (see app/config.py and AZURE_ENVIRONMENT_VARIABLES.md)
+Azure App Service requires these environment variables:
+```bash
+DATABASE_HOST=leadgen-mvp-db.postgres.database.azure.com
+DATABASE_NAME=postgres
+DATABASE_PORT=5432
+DATABASE_USER=lead_gen_admin
+DATABASE_PASSWORD=VFBZ$dPcrI)QyAag
+CLIENT_ID=rabby_lead_gen_mvp_test
+CLIENT_SECRET=egqCnbS%!IsPY)Qk8nWJkSEE
+GEMINI_API_KEY=your_gemini_api_key
+```
 
 ## Data Flow & State Management
 
@@ -170,4 +182,34 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000  # Backend API URL
 - Fallback demo data when database connection fails
 - Export functionality supports multiple formats
 
-This platform is production-ready with real data integration, comprehensive error handling, and professional UI design suitable for enterprise use.
+## Critical Architecture Components
+
+### Async Processing System
+- **Problem Solved**: Azure App Service timeout issues with long-running Gemini AI analysis
+- **Solution**: Background job processing with immediate HTTP responses
+- **Implementation**: `app/core/async_processor.py` with threading and database job tracking
+- **Frontend Integration**: `useAsyncCompanySearch` hook with real-time progress updates
+
+### Authentication Architecture
+- **Database-Backed Tokens**: Persistent token storage to survive container restarts
+- **Timezone Handling**: Uses `datetime.now(timezone.utc)` consistently
+- **Fallback Mechanisms**: Demo mode when backend unavailable
+
+### Database Connection Strategy
+- **Environment Separation**: Database credentials in Azure App Service environment variables only
+- **Frontend Never Connects Directly**: Frontend → Backend API → PostgreSQL
+- **Connection Resilience**: Graceful degradation with demo data fallbacks
+
+## Deployment Architecture
+
+### Azure App Service Backend
+- **URL**: `https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadacentral-01.azurewebsites.net`
+- **Environment Variables**: Must be set in Azure portal (see AZURE_ENVIRONMENT_VARIABLES.md)
+- **Timeout Solution**: Async processing eliminates 502 Bad Gateway errors
+
+### Vercel Frontend  
+- **Environment Variables**: Set in vercel.json for production deployment
+- **API Integration**: Enhanced error handling for network issues and JSON parsing
+- **Progressive Enhancement**: Works offline with cached data
+
+This platform is production-ready with real data integration, comprehensive error handling, professional UI design, and Azure-optimized async processing architecture suitable for enterprise use.

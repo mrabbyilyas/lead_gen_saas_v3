@@ -26,12 +26,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Building2, Search, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Database } from "lucide-react";
 import { useCompanies, useDebounce } from "@/hooks/use-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
+import { AsyncSearchForm } from "@/components/async-search-form";
+import { BackendStatus } from "@/components/backend-status";
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function CompaniesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // Use debounced search to avoid too many API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -41,6 +44,20 @@ export default function CompaniesPage() {
     debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined, 
     50
   );
+
+  // Handle search completion - refresh the companies list
+  const handleSearchComplete = (result: any) => {
+    // Trigger a refresh of the companies list to show new result
+    setRefreshKey(prev => prev + 1);
+    // Optionally navigate to the new company
+    // router.push(`/dashboard/companies/${result.id}`);
+  };
+
+  // Handle search start
+  const handleSearchStart = () => {
+    // Could show a toast or update UI state
+    console.log('Search started...');
+  };
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -98,6 +115,9 @@ export default function CompaniesPage() {
         <div className="flex-1 space-y-6 p-6">
           {/* System Status */}
           <SystemStatusIndicator />
+          
+          {/* Backend Connection Status */}
+          <BackendStatus />
 
           {/* Header Section */}
           <div className="flex items-center justify-between">
@@ -145,7 +165,13 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* Search Section */}
+          {/* AI-Powered Search Section */}
+          <AsyncSearchForm 
+            onSearchComplete={handleSearchComplete}
+            onSearchStart={handleSearchStart}
+          />
+
+          {/* Database Search Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -153,13 +179,13 @@ export default function CompaniesPage() {
                 Search Database
               </CardTitle>
               <CardDescription>
-                Search through company database by name or canonical name
+                Search through existing company database by name or canonical name
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Search companies (e.g., Apple, Microsoft, Tesla...)"
+                  placeholder="Filter existing companies (e.g., Apple, Microsoft, Tesla...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1"

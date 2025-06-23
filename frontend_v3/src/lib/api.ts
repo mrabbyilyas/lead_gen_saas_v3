@@ -33,6 +33,24 @@ export interface CompanyNotFoundResponse {
   suggestions?: string[] | null;
 }
 
+export interface AsyncJobResponse {
+  job_id: string;
+  status: string;
+  progress_message?: string;
+  created_at: string;
+  estimated_completion?: string;
+}
+
+export interface AsyncJobStatus {
+  job_id: string;
+  status: string;
+  progress_message?: string;
+  result?: CompanySearchResponse;
+  error_message?: string;
+  created_at: string;
+  completed_at?: string;
+}
+
 // API Client Class
 class LeadIntelAPI {
   private baseURL: string;
@@ -67,7 +85,7 @@ class LeadIntelAPI {
     return headers;
   }
 
-  // Generic API request handler
+  // Generic API request handler with enhanced error handling
   private async request<T>(
     endpoint: string, 
     options: RequestInit = {}
@@ -80,16 +98,57 @@ class LeadIntelAPI {
     };
 
     try {
+      console.log(`🔗 Making API request to: ${url}`);
+      
       const response = await fetch(url, config);
       
+      console.log(`📡 API Response status: ${response.status} ${response.statusText}`);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      const isJSON = contentType && contentType.includes('application/json');
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          if (isJSON) {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          } else {
+            // Handle HTML error pages
+            const textResponse = await response.text();
+            console.error('Non-JSON error response:', textResponse.substring(0, 200));
+            
+            if (response.status === 502) {
+              errorMessage = 'Backend service unavailable (502). Please check if the backend server is running.';
+            } else if (response.status === 404) {
+              errorMessage = 'API endpoint not found (404). Please check the backend configuration.';
+            } else if (response.status === 500) {
+              errorMessage = 'Internal server error (500). Please check backend logs.';
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      if (!isJSON) {
+        throw new Error('Server returned non-JSON response. Expected JSON data.');
+      }
+
+      const data = await response.json();
+      console.log(`✅ API request successful: ${endpoint}`);
+      return data;
+      
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(`Network error: Cannot connect to backend at ${this.baseURL}. Please check if the backend server is running.`);
+      }
+      
+      console.error(`❌ API request failed: ${endpoint}`, error);
       throw error;
     }
   }
@@ -114,6 +173,49 @@ class LeadIntelAPI {
     return this.request<CompanySearchResponse>(`/companies/${companyId}`);
   }
 
+  // Async company search endpoints
+  async searchCompanyAsync(request: CompanySearchRequest): Promise<AsyncJobResponse> {
+    return this.request<AsyncJobResponse>('/companies/search/async', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getJobStatus(jobId: string): Promise<AsyncJobStatus> {
+    return this.request<AsyncJobStatus>(`/companies/jobs/${jobId}/status`);
+  }
+
+  // Helper method for polling until completion
+  async pollUntilComplete(
+    jobId: string, 
+    onProgress?: (status: AsyncJobStatus) => void,
+    pollInterval: number = 5000,
+    maxAttempts: number = 60 // 5 minutes max
+  ): Promise<CompanySearchResponse> {
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      const status = await this.getJobStatus(jobId);
+      
+      if (onProgress) {
+        onProgress(status);
+      }
+      
+      if (status.status === 'completed' && status.result) {
+        return status.result;
+      } else if (status.status === 'failed') {
+        throw new Error(status.error_message || 'Job failed');
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+    
+    throw new Error('Job timed out after maximum attempts');
+  }
+
   // Admin endpoints
   async updateGeminiKey(newKey: string): Promise<{ message: string }> {
     return this.request<{ message: string }>('/admin/gemini-key', {
@@ -122,9 +224,30 @@ class LeadIntelAPI {
     });
   }
 
-  // Health check
+  // Health check with enhanced diagnostics
   async healthCheck(): Promise<any> {
-    return this.request<any>('/health');
+    try {
+      console.log('🏥 Checking backend health...');
+      const health = await this.request<any>('/health');
+      console.log('✅ Backend is healthy:', health);
+      return health;
+    } catch (error) {
+      console.error('❌ Backend health check failed:', error);
+      throw error;
+    }
+  }
+
+  // Test connectivity to backend
+  async testConnection(): Promise<{ connected: boolean; error?: string }> {
+    try {
+      await this.healthCheck();
+      return { connected: true };
+    } catch (error) {
+      return { 
+        connected: false, 
+        error: error instanceof Error ? error.message : 'Unknown connection error'
+      };
+    }
   }
 }
 
