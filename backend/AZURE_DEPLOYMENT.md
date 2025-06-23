@@ -50,6 +50,10 @@ PORT=8000
 # Azure-specific
 SCM_DO_BUILD_DURING_DEPLOYMENT=true
 ENABLE_ORYX_BUILD=true
+
+# Timeout Configuration (Required for Gemini API calls)
+WEBSITES_CONTAINER_START_TIME_LIMIT=1800
+SCM_COMMAND_IDLE_TIMEOUT=1800
 ```
 
 ### 4. Startup Configuration
@@ -138,12 +142,36 @@ curl -X POST https://leadintel-backend-mvp.azurewebsites.net/companies/search \
 - **Outbound Data Transfer**: First 5GB free
 - **Total Estimated**: $12-15/month from student credits
 
+## Timeout Configuration for Gemini API
+
+The `/companies/search` endpoint uses Gemini AI which can take 1-5 minutes to complete. The following timeout settings are required:
+
+### Required Azure App Service Settings:
+```
+WEBSITES_CONTAINER_START_TIME_LIMIT=1800  # 30 minutes container start timeout
+SCM_COMMAND_IDLE_TIMEOUT=1800            # 30 minutes idle timeout
+```
+
+### Gunicorn Configuration:
+The `startup.sh` script is configured with:
+- `--timeout 600` (10 minutes worker timeout)
+- `--keep-alive 10` (connection keep-alive)
+- `--preload` (preload application for better performance)
+
+### Important Notes:
+- Other API endpoints (health, auth, get company by ID) remain fast
+- Only the search endpoint requires extended timeout
+- Azure App Service has a maximum timeout of 30 minutes for HTTP requests
+- Monitor logs during Gemini API calls to ensure proper operation
+
 ## Troubleshooting
-1. **Deployment Fails**: Check GitHub Actions logs
-2. **Environment Variables**: Verify in App Service Configuration
-3. **Database Connection**: Test connection strings
-4. **Logs**: Use Log Stream for real-time debugging
-5. **Cold Starts**: Enable "Always On" setting
+1. **502 Bad Gateway on Search**: Check timeout configuration above
+2. **Deployment Fails**: Check GitHub Actions logs
+3. **Environment Variables**: Verify in App Service Configuration
+4. **Database Connection**: Test connection strings
+5. **Logs**: Use Log Stream for real-time debugging
+6. **Cold Starts**: Enable "Always On" setting
+7. **Gemini Timeout**: Verify `WEBSITES_CONTAINER_START_TIME_LIMIT` and `SCM_COMMAND_IDLE_TIMEOUT` are set
 
 ## Performance Optimization
 - **Always On**: Prevents cold starts
