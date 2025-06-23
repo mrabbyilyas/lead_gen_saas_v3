@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'backend/**'  # Only trigger when backend code changes
   workflow_dispatch:
 
 jobs:
@@ -27,28 +25,25 @@ jobs:
           python-version: '3.11'
 
       - name: Create and start virtual environment
-        working-directory: ./backend
         run: |
           python -m venv venv
           source venv/bin/activate
       
       - name: Install dependencies
-        working-directory: ./backend
-        run: |
-          source venv/bin/activate
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        working-directory: ./backend
-        run: zip -r ../release.zip . -x "venv/*" "__pycache__/*" "*.pyc"
+        run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: release.zip
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -67,22 +62,13 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      - name: Debug Azure Secrets
-        run: |
-          echo "Client ID length: ${#AZURE_CLIENT_ID}"
-          echo "Tenant ID length: ${#AZURE_TENANT_ID}"
-          echo "Subscription ID length: ${#AZURE_SUBSCRIPTION_ID}"
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A9C7F02864E4C2F4A41DF4C3F0F7B011 }}
-          AZURE_TENANT_ID: ${{ secrets.AZUREAPPSERVICE_TENANTID_37B345F1EB9B4605B5B32F791B9B9DB3 }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_42659CF597534ID093D8C0FEF1AAE44B }}
-
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A9C7F02864E4C2F4A41DF4C3F0F7B011 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_37B345F1EB9B4605B5B32F791B9B9DB3 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_42659CF597534ID093D8C0FEF1AAE44B }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01380813B22F4FBCACA521DFE9E20C0B }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E8C3CEEE0CDD4111A37E1162DBF7E580 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_33F257BA3E8C41A486413317FD7A7D23 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
@@ -90,3 +76,4 @@ jobs:
         with:
           app-name: 'lead-gen-saas-backend'
           slot-name: 'Production'
+          
