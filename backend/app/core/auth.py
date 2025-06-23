@@ -53,27 +53,53 @@ def create_access_token(client_id: str, client_secret: str) -> Dict[str, Any]:
 
 def validate_token(token: str) -> bool:
     """Validate access token"""
+    logger.info(f"🔍 VALIDATING TOKEN: '{token}' (length: {len(token)})")
+    
     db = SessionLocal()
     try:
+        # Test database connection first
+        logger.info(f"📊 Database connection established for token validation")
+        
+        # Log all tokens in database for comparison
+        all_tokens = db.query(AccessToken).all()
+        logger.info(f"📋 Found {len(all_tokens)} tokens in database:")
+        for i, t in enumerate(all_tokens):
+            logger.info(f"  {i+1}. Token: '{t.token}' (len: {len(t.token)}, expires: {t.expires_at})")
+            # Character-by-character comparison for debugging
+            if t.token == token:
+                logger.info(f"  ✅ EXACT MATCH found for token {i+1}")
+            else:
+                logger.info(f"  ❌ No match - comparing chars:")
+                min_len = min(len(token), len(t.token))
+                for j in range(min_len):
+                    if token[j] != t.token[j]:
+                        logger.info(f"    Diff at pos {j}: incoming='{token[j]}' vs db='{t.token[j]}'")
+                        break
+        
+        # Perform the actual query
         db_token = db.query(AccessToken).filter(AccessToken.token == token).first()
         
         if not db_token:
-            logger.debug(f"Token not found in database: {token[:10]}...")
+            logger.error(f"❌ TOKEN NOT FOUND: '{token}' (checked {len(all_tokens)} database tokens)")
             return False
         
         # Check if token is expired (use UTC to match database)
         current_time = datetime.utcnow()
+        logger.info(f"⏰ Time check: current={current_time} UTC, expires={db_token.expires_at}")
+        
         if current_time > db_token.expires_at:
-            logger.debug(f"Token expired: {token[:10]}... (current: {current_time} UTC, expired at: {db_token.expires_at})")
+            logger.error(f"⏰ TOKEN EXPIRED: {token[:10]}... (current: {current_time} UTC, expired at: {db_token.expires_at})")
             # Clean up expired token
             db.delete(db_token)
             db.commit()
             return False
         
-        logger.debug(f"Token validated successfully: {token[:10]}... (current: {current_time} UTC, expires at: {db_token.expires_at})")
+        logger.info(f"✅ TOKEN VALIDATED SUCCESSFULLY: {token[:10]}... (current: {current_time} UTC, expires at: {db_token.expires_at})")
         return True
     except Exception as e:
-        logger.error(f"Error validating token: {e}")
+        logger.error(f"💥 Error validating token: {e}")
+        import traceback
+        logger.error(f"💥 Traceback: {traceback.format_exc()}")
         return False
     finally:
         db.close()

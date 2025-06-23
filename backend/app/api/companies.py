@@ -14,13 +14,25 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 
 def get_current_token(authorization: str = Header(...)) -> str:
     """Extract and validate bearer token"""
+    logger.info(f"🔐 AUTH HEADER RECEIVED: '{authorization}' (length: {len(authorization) if authorization else 0})")
+    
     if not authorization or not authorization.startswith("Bearer "):
+        logger.error(f"❌ INVALID AUTH HEADER: missing or doesn't start with 'Bearer '")
         raise HTTPException(status_code=401, detail="Invalid authorization header")
     
     token = authorization.replace("Bearer ", "")
+    logger.info(f"🎫 EXTRACTED TOKEN: '{token}' (length: {len(token)})")
+    
+    # Check for whitespace or hidden characters
+    if token != token.strip():
+        logger.warning(f"⚠️  TOKEN HAS WHITESPACE: before='{token}', after='{token.strip()}'")
+        token = token.strip()
+    
     if not validate_token(token):
+        logger.error(f"❌ TOKEN VALIDATION FAILED for: '{token}'")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
+    logger.info(f"✅ TOKEN AUTHENTICATION SUCCESSFUL: '{token[:10]}...'")
     return token
 
 @router.post("/search", response_model=Union[CompanySearchResponse, CompanyNotFoundResponse])
