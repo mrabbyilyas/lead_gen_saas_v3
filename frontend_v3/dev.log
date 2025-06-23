@@ -1,0 +1,33 @@
+
+> frontend_v3@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.4 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://10.255.255.254:3000
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 10.9s
+ ○ Compiling /api/stats ...
+ ✓ Compiled /api/stats in 3.6s
+Database connection failed, using demo stats: password authentication failed for user "lead_gen_admin"
+ GET /api/stats 200 in 7669ms
+ ○ Compiling /api/test-db ...
+ ✓ Compiled /api/test-db in 979ms
+Testing database connection...
+Step 1: Testing basic connection
+Testing database connection to: {
+  host: 'leadgen-mvp-db.postgres.database.azure.com',
+  database: 'postgres',
+  user: 'lead_gen_admin'
+}
+Database connection failed: {
+  error: 'password authentication failed for user "lead_gen_admin"',
+  code: '28P01',
+  host: 'leadgen-mvp-db.postgres.database.azure.com',
+  user: 'lead_gen_admin'
+}
+Database connection test failed
+ GET /api/test-db 500 in 3758ms
+[?25h

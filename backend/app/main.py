@@ -86,6 +86,69 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+@app.get("/stats")
+async def get_stats(authorization: str = Header(...)):
+    """Get database statistics"""
+    from app.core.auth import validate_token
+    from app.database.connection import get_db
+    from app.database.models import CompanyAnalysis
+    from sqlalchemy.orm import Session
+    
+    # Validate token
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.replace("Bearer ", "")
+    if not validate_token(token):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    # Get database session
+    db_gen = get_db()
+    db: Session = next(db_gen)
+    
+    try:
+        # Get total companies
+        total_companies = db.query(CompanyAnalysis).count()
+        
+        # Get high score leads (you can adjust the criteria)
+        high_score_leads = db.query(CompanyAnalysis).filter(
+            CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(db.Integer) > 3
+        ).count()
+        
+        # Get average score
+        from sqlalchemy import func
+        avg_result = db.query(
+            func.avg(CompanyAnalysis.analysis_result.op('->>')('diversity_score').cast(db.Float))
+        ).scalar()
+        average_score = round(float(avg_result or 0), 1)
+        
+        # Get success rate
+        success_count = db.query(CompanyAnalysis).filter(
+            CompanyAnalysis.status == 'success'
+        ).count()
+        success_rate = round((success_count / total_companies * 100) if total_companies > 0 else 0)
+        
+        # Get recent analyses (last 30 days)
+        from datetime import datetime, timedelta
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        recent_analyses_count = db.query(CompanyAnalysis).filter(
+            CompanyAnalysis.created_at >= thirty_days_ago
+        ).count()
+        
+        return {
+            "total_companies": total_companies,
+            "high_score_leads": high_score_leads,
+            "average_score": average_score,
+            "success_rate": success_rate,
+            "recent_analyses_count": recent_analyses_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    finally:
+        db.close()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

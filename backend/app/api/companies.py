@@ -38,6 +38,61 @@ def get_current_token(authorization: str = Header(...)) -> str:
     logger.info(f"✅ TOKEN AUTHENTICATION SUCCESSFUL: '{token[:10]}...'")
     return token
 
+@router.get("", response_model=CompanyListResponse)
+async def list_companies(
+    search: Optional[str] = Query(None, description="Search term for company name"),
+    limit: int = Query(50, ge=1, le=100, description="Number of companies to return"),
+    offset: int = Query(0, ge=0, description="Number of companies to skip"),
+    token: str = Depends(get_current_token),
+    db: Session = Depends(get_db)
+) -> CompanyListResponse:
+    """List all companies with optional search and pagination"""
+    
+    try:
+        logger.info(f"Listing companies: search='{search}', limit={limit}, offset={offset}")
+        
+        # Build base query
+        query = db.query(CompanyAnalysis)
+        
+        # Apply search filter if provided
+        if search:
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                CompanyAnalysis.company_name.ilike(search_term) |
+                CompanyAnalysis.canonical_name.ilike(search_term)
+            )
+        
+        # Get total count before pagination
+        total = query.count()
+        
+        # Apply pagination and ordering
+        companies = query.order_by(CompanyAnalysis.created_at.desc()).offset(offset).limit(limit).all()
+        
+        # Convert to response format
+        company_responses = []
+        for company in companies:
+            company_responses.append(CompanySearchResponse(
+                id=company.id,
+                company_name=company.company_name,
+                canonical_name=company.canonical_name,
+                analysis_result=company.analysis_result,
+                status=company.status,
+                created_at=company.created_at
+            ))
+        
+        logger.info(f"Found {total} companies, returning {len(company_responses)} companies")
+        
+        return CompanyListResponse(
+            companies=company_responses,
+            total=total,
+            limit=limit,
+            offset=offset
+        )
+        
+    except Exception as e:
+        logger.error(f"Error listing companies: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.post("/search", response_model=Union[CompanySearchResponse, CompanyNotFoundResponse])
 async def search_company_endpoint(
     request: CompanySearchRequest,

@@ -1,61 +1,61 @@
-// Test database connection API route
+// Test backend connection API route (proxy to backend health endpoint)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
-  console.log('Testing database connection...');
+  console.log('Testing backend connection...');
   
   try {
-    // Test basic connection first
-    console.log('Step 1: Testing basic connection');
-    const isConnected = await db.testConnection();
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     
-    if (!isConnected) {
-      console.error('Database connection test failed');
+    if (!backendUrl) {
       return NextResponse.json({
         success: false,
-        error: 'Database connection failed',
-        details: 'Could not establish connection to Azure PostgreSQL'
+        error: 'Backend URL not configured',
+        details: 'NEXT_PUBLIC_API_BASE_URL environment variable is missing'
       }, { status: 500 });
     }
 
-    console.log('Step 2: Testing database queries');
-    // Try to get a count of companies
-    try {
-      const stats = await db.getDatabaseStats();
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Database connection and queries successful',
-        data: {
-          connection: 'OK',
-          total_companies: stats.total_companies,
-          high_score_leads: stats.high_score_leads,
-          average_score: stats.average_score,
-          timestamp: new Date().toISOString()
-        }
-      });
-      
-    } catch (queryError) {
-      console.error('Database query error:', queryError);
-      
+    // Call backend health endpoint
+    const response = await fetch(`${backendUrl}/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+
+    if (!response.ok) {
       return NextResponse.json({
         success: false,
-        error: 'Database queries failed',
-        message: queryError instanceof Error ? queryError.message : 'Unknown query error',
-        details: 'Connection successful but queries failed'
+        error: 'Backend health check failed',
+        details: `Backend returned status ${response.status}`,
+        backend_url: backendUrl
       }, { status: 500 });
     }
+
+    const healthData = await response.json();
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Backend connection successful',
+      data: {
+        backend_status: 'OK',
+        backend_url: backendUrl,
+        health_data: healthData,
+        timestamp: new Date().toISOString()
+      }
+    });
 
   } catch (error) {
-    console.error('Database test error:', error);
+    console.error('Backend connection test error:', error);
     
     return NextResponse.json({
       success: false,
-      error: 'Database test failed',
+      error: 'Backend connection test failed',
       message: error instanceof Error ? error.message : 'Unknown error',
-      details: 'Failed at connection level'
+      details: 'Failed to connect to backend API'
     }, { status: 500 });
   }
 }

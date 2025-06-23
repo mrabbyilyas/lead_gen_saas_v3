@@ -1,7 +1,6 @@
-// API route for individual company data
+// API route for individual company data - proxy to backend API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
@@ -17,18 +16,42 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const company = await db.getCompanyById(companyId);
-
-    if (!company) {
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    
+    if (!backendUrl) {
       return NextResponse.json({
         success: false,
-        error: 'Company not found'
-      }, { status: 404 });
+        error: 'Backend URL not configured'
+      }, { status: 500 });
     }
 
+    // Call backend companies/{id} endpoint
+    const response = await fetch(`${backendUrl}/companies/${companyId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(15000) // 15 second timeout
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json({
+          success: false,
+          error: 'Company not found'
+        }, { status: 404 });
+      }
+      
+      throw new Error(`Backend returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    
     return NextResponse.json({
       success: true,
-      data: company
+      data: data.company || data.data || data
     });
 
   } catch (error) {
@@ -37,7 +60,7 @@ export async function GET(
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch company data',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Backend API unavailable'
     }, { status: 500 });
   }
 }

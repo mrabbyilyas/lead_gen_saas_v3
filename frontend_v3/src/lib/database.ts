@@ -2,15 +2,15 @@
 
 import { Client } from 'pg';
 
-// Environment variable validation with Base64 password decoding
+// Environment variable validation with Azure PostgreSQL configuration
 const validateDatabaseConfig = () => {
-  const required = ['DB_HOST', 'DB_USER', 'DB_NAME'];
+  const required = ['DATABASE_HOST', 'DATABASE_USER', 'DATABASE_NAME'];
   const missing = required.filter(key => !process.env[key]);
   
   // Check for password (either encoded or plain)
-  const hasPassword = process.env.DB_PASSWORD_ENCODED || process.env.DB_PASSWORD;
+  const hasPassword = process.env.DATABASE_PASSWORD_ENCODED || process.env.DATABASE_PASSWORD;
   if (!hasPassword) {
-    missing.push('DB_PASSWORD or DB_PASSWORD_ENCODED');
+    missing.push('DATABASE_PASSWORD or DATABASE_PASSWORD_ENCODED');
   }
   
   if (missing.length > 0) {
@@ -19,25 +19,26 @@ const validateDatabaseConfig = () => {
   
   // Decode password if it's Base64 encoded
   let password = '';
-  if (process.env.DB_PASSWORD_ENCODED) {
+  if (process.env.DATABASE_PASSWORD_ENCODED) {
     try {
-      password = Buffer.from(process.env.DB_PASSWORD_ENCODED, 'base64').toString();
+      password = Buffer.from(process.env.DATABASE_PASSWORD_ENCODED, 'base64').toString();
     } catch (error) {
       console.error('Failed to decode Base64 password:', error);
-      password = process.env.DB_PASSWORD || '';
+      password = process.env.DATABASE_PASSWORD || '';
     }
   } else {
-    password = process.env.DB_PASSWORD || '';
+    password = process.env.DATABASE_PASSWORD || '';
   }
   
   return {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: process.env.DB_NAME || 'postgres',
-    user: process.env.DB_USER || 'postgres',
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || '5432'),
+    database: process.env.DATABASE_NAME || 'postgres',
+    user: process.env.DATABASE_USER || 'postgres',
     password: password,
     ssl: {
       rejectUnauthorized: false,
+      sslmode: 'require', // Azure PostgreSQL requires SSL
     },
     max: 10,
     idleTimeoutMillis: 30000,
