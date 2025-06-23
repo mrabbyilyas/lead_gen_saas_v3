@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(echo $DATABASE_HOST)",
+      "Bash(cp:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(./venv/Scripts/python.exe -m app.main)"
+    ],
+    "deny": []
+  }
+}
