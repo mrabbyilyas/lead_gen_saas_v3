@@ -67,20 +67,6 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A9C7F02864E4C2F4A41DF4C3F0F7B011   }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_37B345F1EB9B4605B5B32F791B9B9DB3 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_42659CF597534ID093D8C0FEF1AAE44B }}
-
-      - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: 'lead-gen-saas-backend'
-          slot-name: 'Production'
-
       - name: Debug Azure Secrets
         run: |
           echo "Client ID length: ${#AZURE_CLIENT_ID}"
@@ -90,3 +76,17 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A9C7F02864E4C2F4A41DF4C3F0F7B011 }}
           AZURE_TENANT_ID: ${{ secrets.AZUREAPPSERVICE_TENANTID_37B345F1EB9B4605B5B32F791B9B9DB3 }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_42659CF597534ID093D8C0FEF1AAE44B }}
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A9C7F02864E4C2F4A41DF4C3F0F7B011 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_37B345F1EB9B4605B5B32F791B9B9DB3 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_42659CF597534ID093D8C0FEF1AAE44B }}
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
+        with:
+          app-name: 'lead-gen-saas-backend'
+          slot-name: 'Production'
