@@ -25,10 +25,35 @@ export async function GET(
       }, { status: 500 });
     }
 
+    // Get auth token
+    const clientId = process.env.NEXT_PUBLIC_CLIENT_ID || 'rabby_lead_gen_mvp_test';
+    const clientSecret = process.env.NEXT_PUBLIC_CLIENT_SECRET || 'egqCnbS%!IsPY)Qk8nWJkSEE';
+    
+    let authToken = '';
+    try {
+      const authResponse = await fetch(`${backendUrl}/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+      });
+      
+      if (authResponse.ok) {
+        const authData = await authResponse.json();
+        authToken = authData.access_token;
+      }
+    } catch (authError) {
+      console.warn('Failed to get auth token:', authError);
+    }
+
+    if (!authToken) {
+      throw new Error('Failed to authenticate with backend');
+    }
+
     // Call backend companies/{id} endpoint
     const response = await fetch(`${backendUrl}/companies/${companyId}`, {
       method: 'GET',
       headers: {
+        'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },

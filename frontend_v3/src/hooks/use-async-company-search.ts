@@ -40,16 +40,43 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
         ...initialState,
         isSearching: true,
         startTime: new Date(),
+        progress: 'Checking existing database...',
       });
 
-      // Start async search
+      // First, check if company exists in database
+      try {
+        const response = await fetch(`/api/companies?search=${encodeURIComponent(companyName)}&limit=1`);
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          // Company found in database - return immediately
+          const existingCompany = data.data[0];
+          setState(prev => ({
+            ...prev,
+            isSearching: false,
+            result: existingCompany,
+            progress: 'Found in database',
+            status: 'completed'
+          }));
+          return;
+        }
+      } catch (dbError) {
+        console.warn('Database check failed, proceeding with async search:', dbError);
+      }
+
+      // Company not found in database - start async search
+      setState(prev => ({
+        ...prev,
+        progress: 'Starting AI analysis...',
+      }));
+
       const jobResponse = await api.searchCompanyAsync({ company_name: companyName });
       
       setState(prev => ({
         ...prev,
         jobId: jobResponse.job_id,
         status: jobResponse.status,
-        progress: jobResponse.progress_message || 'Starting analysis...',
+        progress: jobResponse.progress_message || 'AI analysis in progress...',
         estimatedCompletion: jobResponse.estimated_completion || null,
       }));
 

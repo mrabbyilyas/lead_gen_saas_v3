@@ -10,7 +10,8 @@
       "Bash(echo:*)",
       "Bash(mkdir:*)",
       "Bash(find:*)",
-      "Bash(PYTHONPATH=\"/mnt/c/Users/ASUS TUF/Data Project/lead_gen_saas_v3/backend\" python3 \"/mnt/c/Users/ASUS TUF/Data Project/lead_gen_saas_v3/backend/test_backend_syntax.py\")"
+      "Bash(PYTHONPATH=\"/mnt/c/Users/ASUS TUF/Data Project/lead_gen_saas_v3/backend\" python3 \"/mnt/c/Users/ASUS TUF/Data Project/lead_gen_saas_v3/backend/test_backend_syntax.py\")",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

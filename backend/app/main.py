@@ -36,30 +36,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware - configurable for production
-allowed_origins = [
-    "http://localhost:3000",  # Local development
-    "http://127.0.0.1:3000",  # Local development alternative
-    "https://localhost:3000",  # Local development HTTPS
-]
-
-# Add production origins from environment variables
-if not settings.DEBUG:
-    # Production CORS origins
-    frontend_url = os.getenv("FRONTEND_URL")
-    if frontend_url:
-        allowed_origins.append(frontend_url)
-    # Add common Vercel pattern
-    vercel_app = os.getenv("VERCEL_APP_NAME")
-    if vercel_app:
-        allowed_origins.append(f"https://{vercel_app}.vercel.app")
-else:
-    # Development mode - allow all origins
-    allowed_origins = ["*"]
-
-# For debugging CORS in development, always allow localhost
-if settings.DEBUG:
-    allowed_origins = ["*"]
+# CORS middleware - allow all origins for now to fix CORS issues
+allowed_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,

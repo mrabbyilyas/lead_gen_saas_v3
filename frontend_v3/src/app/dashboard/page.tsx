@@ -19,37 +19,19 @@ import {
 } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building2, Search, TrendingUp, Users, DollarSign, BarChart3, Loader2, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Brain, Clock } from "lucide-react";
+import { Building2, TrendingUp, Users, DollarSign, BarChart3, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart } from "lucide-react";
 import { useCompanies, useDashboardStats, useDebounce } from "@/hooks/use-company-data";
-import { api } from "@/lib/api";
 import { SystemStatusIndicator } from "@/components/system-status";
+import { AsyncSearchForm } from "@/components/async-search-form";
 import { exportToCSV, exportToJSON, exportSummaryStats } from "@/lib/export";
 import { formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResult, setSearchResult] = useState<any>(null);
-  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<string>("");
-  const [elapsedTime, setElapsedTime] = useState(0);
-  
-  // Timer effect for AI search loading
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isSearching) {
-      interval = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isSearching]);
   
   // Use debounced search to avoid too many API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -61,75 +43,11 @@ export default function DashboardPage() {
     20
   );
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    setSearchResult(null);
-    setAiAnalysisProgress("");
-    setElapsedTime(0);
-    
-    try {
-      // Set initial progress message
-      setAiAnalysisProgress("Searching existing database...");
-      
-      // Add a small delay to show the first message
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Try to use real backend API for company search
-      const result = await api.searchCompany({ company_name: searchQuery.trim() });
-      
-      // Check if it's a successful response or not found
-      if ('error' in result) {
-        // Company not found response
-        setSearchResult({
-          company_name: searchQuery,
-          error: result.error,
-          message: result.message,
-          suggestions: result.suggestions || [],
-          status: "not_found"
-        });
-      } else {
-        // If the analysis is new (just created), show the AI progress
-        const isNewAnalysis = result.created_at && 
-          (new Date().getTime() - new Date(result.created_at).getTime()) < 10000; // Within last 10 seconds
-        
-        if (isNewAnalysis) {
-          setAiAnalysisProgress("AI analysis completed successfully!");
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        // Successful analysis response
-        setSearchResult({
-          company_name: result.company_name,
-          canonical_name: result.canonical_name,
-          analysis_result: result.analysis_result,
-          status: result.status,
-          created_at: result.created_at,
-          id: result.id
-        });
-      }
-      
-    } catch (error) {
-      console.error("Company search error:", error);
-      
-      // Check if this might be an AI analysis timeout (common for new companies)
-      if (error instanceof Error && error.message.includes('timeout')) {
-        setAiAnalysisProgress("AI analysis is taking longer than expected (1-5 minutes)...");
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      // Fallback to demo mode for development
-      setSearchResult({
-        company_name: searchQuery,
-        analysis: "Demo analysis - Backend API not available. This is a placeholder result for development.",
-        status: "demo_mode",
-        message: "Using demo mode - backend API not connected"
-      });
-    } finally {
-      setIsSearching(false);
-      setAiAnalysisProgress("");
-      setElapsedTime(0);
+  // Handle async search completion
+  const handleAsyncSearchComplete = (result: any) => {
+    // Navigate to company detail page when search completes
+    if (result?.id) {
+      router.push(`/dashboard/companies/${result.id}`);
     }
   };
 
@@ -195,14 +113,6 @@ export default function DashboardPage() {
     }
   };
 
-  // View company analysis
-  const handleViewAnalysis = (companyId?: number) => {
-    if (companyId) {
-      router.push(`/dashboard/companies/${companyId}`);
-    } else if (searchResult && searchResult.id) {
-      router.push(`/dashboard/companies/${searchResult.id}`);
-    }
-  };
 
   // View company from table
   const handleViewCompany = (companyId: number) => {
@@ -284,130 +194,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Search Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Search Companies
-              </CardTitle>
-              <CardDescription>
-                Enter a company name to generate AI-powered analysis and intelligence reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter company name (e.g., Apple, Microsoft, Tesla...)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="flex-1"
-                />
-                <Button onClick={handleSearch} disabled={isSearching}>
-                  {isSearching ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              
-              {isSearching && (
-                <div className="mt-4 text-center py-8">
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Brain className="h-8 w-8 text-blue-500" />
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  </div>
-                  <p className="text-lg font-medium mb-2">AI Company Analysis</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {aiAnalysisProgress || "Analyzing company data with AI..."}
-                  </p>
-                  <div className="bg-muted rounded-lg p-4 max-w-md mx-auto">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>This process typically takes 1-5 minutes for new companies</span>
-                      </div>
-                      <div className="flex items-center gap-1 font-mono text-blue-600">
-                        <span>Elapsed:</span>
-                        <span>{Math.floor(elapsedTime / 60).toString().padStart(2, '0')}:{(elapsedTime % 60).toString().padStart(2, '0')}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      • Searching existing database<br/>
-                      • Generating AI analysis (if needed)<br/>
-                      • Processing financial metrics<br/>
-                      • Calculating intelligence score
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {searchResult && !isSearching && (
-                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                  <h4 className="font-medium mb-2">
-                    {searchResult.canonical_name || searchResult.company_name}
-                  </h4>
-                  
-                  {searchResult.status === "not_found" ? (
-                    <>
-                      <Badge variant="destructive" className="mb-2">Company Not Found</Badge>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {searchResult.message}
-                      </p>
-                      {searchResult.suggestions && searchResult.suggestions.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-sm font-medium mb-2">Did you mean:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {searchResult.suggestions.map((suggestion, index) => (
-                              <Button 
-                                key={index} 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setSearchQuery(suggestion)}
-                              >
-                                {suggestion}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : searchResult.status === "demo_mode" ? (
-                    <>
-                      <Badge variant="secondary" className="mb-2">Demo Mode</Badge>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {searchResult.message || "Demo analysis result - backend API not connected"}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Badge variant="default" className="mb-2">
-                        {searchResult.status === "completed" ? "Analysis Complete" : searchResult.status}
-                      </Badge>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        AI analysis completed successfully. View comprehensive report with financial metrics, 
-                        market position, and lead scoring.
-                      </p>
-                      {searchResult.canonical_name && searchResult.canonical_name !== searchResult.company_name && (
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Searched as: {searchResult.company_name}
-                        </p>
-                      )}
-                    </>
-                  )}
-                  
-                  {searchResult.status !== "not_found" && (
-                    <Button size="sm" onClick={() => handleViewAnalysis()}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Full Analysis
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Async Search Section */}
+          <AsyncSearchForm 
+            onSearchComplete={handleAsyncSearchComplete}
+            className="w-full"
+          />
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
