@@ -13,8 +13,8 @@ class Settings:
     DATABASE_PASSWORD: str = os.getenv("DATABASE_PASSWORD", "")
     
     # Auth
-    CLIENT_ID: str = os.getenv("CLIENT_ID", "rabby_lead_gen_mvp_test")
-    CLIENT_SECRET: str = os.getenv("CLIENT_SECRET", "egqCnbS%!IsPY)Qk8nWJkSEE")
+    CLIENT_ID: str = os.getenv("CLIENT_ID", "")
+    CLIENT_SECRET: str = os.getenv("CLIENT_SECRET", "")
     TOKEN_EXPIRE_HOURS: int = 24
     
     # Gemini
