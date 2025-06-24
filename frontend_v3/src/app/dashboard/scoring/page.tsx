@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Target, TrendingUp, Filter, Search, Building2, Eye, Award, Star } from "lucide-react";
-import { useCompanies, useDebounce } from "@/hooks/use-company-data";
+import { useAdvancedCompanySearch } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
@@ -37,14 +37,24 @@ export default function ScoringPage() {
   const [industryFilter, setIndustryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("score");
   
-  // Use debounced search to avoid too many API calls
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  // Use advanced search with debouncing for direct database access
+  const {
+    searchTerm,
+    setSearchTerm,
+    debouncedSearchTerm,
+    data: searchResults,
+    isLoading: companiesLoading,
+    error: companiesError,
+    isSearching
+  } = useAdvancedCompanySearch(searchQuery, 500);
   
-  // Fetch companies data
-  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(
-    debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined, 
-    100
-  );
+  // Extract companies from the enhanced data structure
+  const companies = searchResults?.companies || [];
+  
+  // Sync search query with the hook
+  useEffect(() => {
+    setSearchTerm(searchQuery);
+  }, [searchQuery, setSearchTerm]);
 
   // Parse analysis result for display - using correct paths from individual company page
   const getAnalysisData = (analysisResult: any) => {
@@ -341,7 +351,7 @@ export default function ScoringPage() {
             <CardContent>
               {companiesError ? (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-red-600">Failed to load companies: {companiesError}</p>
+                  <p className="text-red-600">Failed to load companies: {companiesError instanceof Error ? companiesError.message : String(companiesError)}</p>
                 </div>
               ) : (
                 <Table>

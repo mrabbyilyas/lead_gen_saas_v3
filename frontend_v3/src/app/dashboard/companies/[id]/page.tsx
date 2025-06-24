@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Building2, ArrowLeft, Download, FileText, Calendar, Target, TrendingUp, Loader2, Award, Star, Users } from "lucide-react";
-import { useCompany } from "@/hooks/use-company-data";
+import { useDirectCompany } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { calculateAIScore, formatAIScore, getScoreColor, getScoreBadgeVariant } from "@/lib/ai-score";
 
@@ -29,8 +29,8 @@ export default function CompanyDetailPage() {
   const router = useRouter();
   const companyId = parseInt(params.id as string);
   
-  // Fetch individual company data
-  const { company, loading, error } = useCompany(companyId);
+  // Fetch individual company data using direct database access
+  const { data: company, isLoading: loading, error } = useDirectCompany(companyId);
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -170,10 +170,7 @@ export default function CompanyDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(() => {
-                    const scoreBreakdown = calculateAIScore(company.analysis_result);
-                    return formatAIScore(scoreBreakdown.total);
-                  })()}
+                  {company.formatted_ai_score || 'N/A'}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Composite AI analysis score
@@ -245,7 +242,8 @@ export default function CompanyDetailPage() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const scoreBreakdown = calculateAIScore(company.analysis_result);
+                  // Use pre-calculated AI score breakdown from enhanced company data
+                  const scoreBreakdown = company.ai_score_breakdown || calculateAIScore(company.analysis_result);
                   
                   // For simple scores (like diversity), show a different breakdown
                   if (scoreBreakdown.isSimpleScore) {
@@ -253,7 +251,7 @@ export default function CompanyDetailPage() {
                       <div className="text-center py-8">
                         <div className="mb-4">
                           <div className="text-4xl font-bold text-blue-600">
-                            {formatAIScore(scoreBreakdown.total)}
+                            {company.formatted_ai_score || formatAIScore(scoreBreakdown.total)}
                           </div>
                           <p className="text-sm text-muted-foreground mt-2">
                             {scoreBreakdown.simpleScoreType === 'diversity' ? 'Diversity-based AI Score' : 'Simple AI Score'}

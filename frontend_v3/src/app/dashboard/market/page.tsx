@@ -20,13 +20,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, TrendingDown, DollarSign, Building2, Users, BarChart3, Globe, RefreshCw, Download } from "lucide-react";
-import { useCompanies, useDashboardStats } from "@/hooks/use-company-data";
+import { useDirectCompanies, useDirectDashboardStats } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 
 export default function MarketPage() {
   // Fetch companies data for market analysis
-  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(undefined, 200);
-  const { stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats();
+  const { data: companiesData, isLoading: companiesLoading, error: companiesError } = useDirectCompanies(undefined, 200);
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useDirectDashboardStats();
+  
+  // Extract companies from the enhanced data structure
+  const companies = companiesData?.companies || [];
 
   // Calculate market insights
   const getMarketInsights = () => {
@@ -226,7 +229,7 @@ export default function MarketPage() {
               </CardHeader>
               <CardContent>
                 {companiesError ? (
-                  <p className="text-red-600">Failed to load market data: {companiesError}</p>
+                  <p className="text-red-600">Failed to load market data: {companiesError instanceof Error ? companiesError.message : String(companiesError)}</p>
                 ) : companiesLoading ? (
                   <div className="space-y-4">
                     {[...Array(5)].map((_, i) => (

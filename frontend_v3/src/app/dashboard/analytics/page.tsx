@@ -19,14 +19,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, TrendingUp, TrendingDown, Users, Building2, Target, ArrowUpRight, RefreshCw, Download } from "lucide-react";
-import { useDashboardStats, useCompanies } from "@/hooks/use-company-data";
+import { useDirectDashboardStats, useDirectCompanies } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { calculateAIScore } from "@/lib/ai-score";
 
 export default function AnalyticsPage() {
   // Fetch dashboard statistics and company data
-  const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
-  const { companies, loading: companiesLoading } = useCompanies(undefined, 100);
+  const { data: stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useDirectDashboardStats();
+  const { data: companiesData, isLoading: companiesLoading } = useDirectCompanies(undefined, 100);
+  
+  // Extract companies from the enhanced data structure
+  const companies = companiesData?.companies || [];
 
   // Calculate additional analytics using centralized AI scoring
   const getAnalytics = () => {

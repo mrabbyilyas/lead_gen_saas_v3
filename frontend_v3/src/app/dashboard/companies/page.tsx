@@ -24,26 +24,32 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Building2, Search, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Database } from "lucide-react";
-import { useCompanies, useDebounce, useInvalidateCompanyCache } from "@/hooks/use-company-data";
+import { useDirectCompanies, useDirectCompanyCache, useAdvancedCompanySearch } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
-import { AsyncSearchForm } from "@/components/async-search-form";
-import { BackendStatus } from "@/components/backend-status";
+import { EnhancedAsyncSearchForm } from "@/components/enhanced-async-search-form";
+import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function CompaniesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const { invalidateCompanyList, prefetchCompany } = useInvalidateCompanyCache();
+  const { invalidateCompanyList, prefetchCompany } = useDirectCompanyCache();
   
-  // Use debounced search to avoid too many API calls
-  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Reduced debounce time
-  
-  // Fetch real data from database with React Query
-  const { companies, loading: companiesLoading, error: companiesError, isFetching } = useCompanies(
-    debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined, 
-    50
-  );
+  // Use advanced search with direct database access
+  const {
+    searchTerm,
+    setSearchTerm: setDebouncedSearch,
+    debouncedSearchTerm,
+    data: searchResults,
+    isLoading: companiesLoading,
+    error: companiesError,
+    isFetching,
+    isSearching
+  } = useAdvancedCompanySearch(searchQuery);
+
+  // Extract companies from search results
+  const companies = searchResults?.companies || [];
 
   // Handle search completion - invalidate cache to show new result
   const handleSearchComplete = (result: any) => {
@@ -57,8 +63,13 @@ export default function CompaniesPage() {
 
   // Handle search start
   const handleSearchStart = () => {
-    // Could show a toast or update UI state
-    console.log('Search started...');
+    console.log('Enhanced search started...');
+  };
+
+  // Sync search query with advanced search
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQuery(value);
+    setDebouncedSearch(value);
   };
 
   // Parse analysis result for display - using correct paths from individual company page
@@ -86,8 +97,8 @@ export default function CompaniesPage() {
   // Export handlers
   const handleExportCSV = () => {
     if (companies.length > 0) {
-      const filename = debouncedSearchQuery 
-        ? `companies_search_${debouncedSearchQuery.replace(/[^a-zA-Z0-9]/g, '_')}` 
+      const filename = debouncedSearchTerm 
+        ? `companies_search_${debouncedSearchTerm.replace(/[^a-zA-Z0-9]/g, '_')}` 
         : 'companies_database_export';
       exportToCSV(companies, filename);
     }
@@ -95,8 +106,8 @@ export default function CompaniesPage() {
 
   const handleExportJSON = () => {
     if (companies.length > 0) {
-      const filename = debouncedSearchQuery 
-        ? `companies_search_${debouncedSearchQuery.replace(/[^a-zA-Z0-9]/g, '_')}` 
+      const filename = debouncedSearchTerm 
+        ? `companies_search_${debouncedSearchTerm.replace(/[^a-zA-Z0-9]/g, '_')}` 
         : 'companies_database_export';
       exportToJSON(companies, filename);
     }
@@ -137,8 +148,8 @@ export default function CompaniesPage() {
           {/* System Status */}
           <SystemStatusIndicator />
           
-          {/* Backend Connection Status */}
-          <BackendStatus />
+          {/* Database Connection Status */}
+          <DatabaseStatus />
 
           {/* Header Section */}
           <div className="flex items-center justify-between">
@@ -186,8 +197,8 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* AI-Powered Search Section */}
-          <AsyncSearchForm 
+          {/* Enhanced AI-Powered Search Section */}
+          <EnhancedAsyncSearchForm 
             onSearchComplete={handleSearchComplete}
             onSearchStart={handleSearchStart}
           />
@@ -200,7 +211,7 @@ export default function CompaniesPage() {
                 Search Database
               </CardTitle>
               <CardDescription>
-                Search through existing company database by name or canonical name
+                Search through existing company database with instant results from PostgreSQL
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -208,13 +219,23 @@ export default function CompaniesPage() {
                 <Input
                   placeholder="Filter existing companies (e.g., Apple, Microsoft, Tesla...)"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchQueryChange(e.target.value)}
                   className="flex-1"
                 />
-                <Button variant="outline">
-                  <Search className="h-4 w-4" />
+                <Button variant="outline" disabled={isSearching}>
+                  {isSearching ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
+              {isSearching && (
+                <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Searching database...
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -224,12 +245,12 @@ export default function CompaniesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>
-                    {debouncedSearchQuery ? `Search Results for "${debouncedSearchQuery}"` : 'All Companies'}
+                    {debouncedSearchTerm ? `Search Results for "${debouncedSearchTerm}"` : 'All Companies'}
                   </CardTitle>
                   <CardDescription>
                     {companiesLoading 
-                      ? 'Loading company database...' 
-                      : `${companies.length} companies in database`
+                      ? 'Loading from PostgreSQL database...' 
+                      : `${companies.length} companies found ${searchResults?.total ? `(total: ${searchResults.total})` : ''}`
                     }
                   </CardDescription>
                 </div>
@@ -238,7 +259,7 @@ export default function CompaniesPage() {
             <CardContent>
               {companiesError ? (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-red-600">Failed to load companies: {companiesError}</p>
+                  <p className="text-red-600">Failed to load companies: {companiesError instanceof Error ? companiesError.message : String(companiesError)}</p>
                 </div>
               ) : (
                 <Table>
@@ -275,14 +296,14 @@ export default function CompaniesPage() {
                     ) : companies.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          {debouncedSearchQuery ? 'No companies found matching your search.' : 'No companies in database.'}
+                          {debouncedSearchTerm ? 'No companies found matching your search.' : 'No companies in database.'}
                         </TableCell>
                       </TableRow>
                     ) : (
                       companies.map((company) => {
                         const analysisData = getAnalysisData(company.analysis_result);
-                        const scoreBreakdown = calculateAIScore(company.analysis_result);
-                        const aiScore = scoreBreakdown?.total;
+                        // Use pre-calculated AI score from enhanced company data
+                        const aiScore = company.ai_score_breakdown?.total || 0;
                         
                         return (
                           <TableRow key={company.id}>
@@ -314,12 +335,12 @@ export default function CompaniesPage() {
                               {analysisData?.revenueRange || '-'}
                             </TableCell>
                             <TableCell>
-                              {aiScore ? (
+                              {aiScore > 0 ? (
                                 <Badge 
                                   variant={getScoreBadgeVariant(aiScore)}
                                   className="font-mono"
                                 >
-                                  {formatAIScore(aiScore)}
+                                  {company.formatted_ai_score || formatAIScore(aiScore)}
                                 </Badge>
                               ) : (
                                 <span className="text-muted-foreground text-sm">-</span>

@@ -22,18 +22,30 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Building2, TrendingUp, Users, DollarSign, BarChart3, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart } from "lucide-react";
-import { useCompanies, useDashboardStats } from "@/hooks/use-company-data";
+import { useDirectCompanies, useDirectDashboardStats } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
-import { AsyncSearchForm } from "@/components/async-search-form";
+import { EnhancedAsyncSearchForm } from "@/components/enhanced-async-search-form";
+import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON, exportSummaryStats } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function DashboardPage() {
   const router = useRouter();
   
-  // Fetch real data from database
-  const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
-  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(undefined, 20);
+  // Fetch real data from database using direct connections
+  const { data: dashboardData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useDirectDashboardStats();
+  const { data: companiesData, isLoading: companiesLoading, error: companiesError } = useDirectCompanies(undefined, 20);
+  
+  // Extract stats and companies from the enhanced data
+  const stats = dashboardData ? {
+    total_companies: dashboardData.total_companies,
+    high_score_leads: dashboardData.high_score_leads,
+    average_score: dashboardData.average_score,
+    success_rate: dashboardData.success_rate,
+    recent_analyses_count: dashboardData.recent_analyses_count
+  } : null;
+  
+  const companies = dashboardData?.recent_companies || companiesData?.companies || [];
 
   // Handle async search completion
   const handleAsyncSearchComplete = (result: any) => {
@@ -141,6 +153,9 @@ export default function DashboardPage() {
         <div className="flex-1 space-y-6 p-6">
           {/* System Status */}
           <SystemStatusIndicator />
+          
+          {/* Database Status */}
+          <DatabaseStatus />
 
           {/* Header Section */}
           <div className="flex items-center justify-between">
@@ -193,8 +208,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Async Search Section */}
-          <AsyncSearchForm 
+          {/* Enhanced Async Search Section */}
+          <EnhancedAsyncSearchForm 
             onSearchComplete={handleAsyncSearchComplete}
             className="w-full"
           />
@@ -218,7 +233,7 @@ export default function DashboardPage() {
             ) : statsError ? (
               <Card className="col-span-full">
                 <CardContent className="flex items-center justify-center py-8">
-                  <p className="text-red-600">Failed to load statistics: {statsError}</p>
+                  <p className="text-red-600">Failed to load statistics: {statsError instanceof Error ? statsError.message : String(statsError)}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -260,7 +275,7 @@ export default function DashboardPage() {
             <CardContent>
               {companiesError ? (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-red-600">Failed to load companies: {companiesError}</p>
+                  <p className="text-red-600">Failed to load companies: {companiesError instanceof Error ? companiesError.message : String(companiesError)}</p>
                 </div>
               ) : (
                 <Table>
@@ -303,8 +318,8 @@ export default function DashboardPage() {
                     ) : (
                       companies.map((company) => {
                         const analysisData = getAnalysisData(company.analysis_result);
-                        const scoreBreakdown = calculateAIScore(company.analysis_result);
-                        const aiScore = scoreBreakdown?.total;
+                        // Use pre-calculated AI score from enhanced company data
+                        const aiScore = company.ai_score_breakdown?.total || 0;
                         
                         return (
                           <TableRow key={company.id}>
@@ -336,12 +351,12 @@ export default function DashboardPage() {
                               {analysisData?.revenueRange || '-'}
                             </TableCell>
                             <TableCell>
-                              {aiScore ? (
+                              {aiScore > 0 ? (
                                 <Badge 
                                   variant={getScoreBadgeVariant(aiScore)}
                                   className="font-mono"
                                 >
-                                  {formatAIScore(aiScore)}
+                                  {company.formatted_ai_score || formatAIScore(aiScore)}
                                 </Badge>
                               ) : (
                                 <span className="text-muted-foreground text-sm">-</span>
