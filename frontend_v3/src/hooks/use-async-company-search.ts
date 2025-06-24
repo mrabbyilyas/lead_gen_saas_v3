@@ -43,28 +43,31 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
         progress: 'Checking existing database...',
       });
 
-      // First, check if company exists in database
+      // First, check if company exists in database (SAFE - only queries database, no Gemini API)
       try {
         const response = await fetch(`/api/companies?search=${encodeURIComponent(companyName)}&limit=1`);
         const data = await response.json();
         
         if (data.success && data.data && data.data.length > 0) {
-          // Company found in database - return immediately
+          // Company found in database - return immediately, NO async job needed
           const existingCompany = data.data[0];
+          console.log(`Found existing company ${companyName} in database:`, existingCompany);
           setState(prev => ({
             ...prev,
             isSearching: false,
             result: existingCompany,
-            progress: 'Found in database',
+            progress: 'Found existing analysis in database',
             status: 'completed'
           }));
+          // NO async call, NO polling - completely done here
           return;
         }
       } catch (dbError) {
         console.warn('Database check failed, proceeding with async search:', dbError);
       }
 
-      // Company not found in database - start async search
+      // Company NOT found in database - ONLY THEN start async search
+      console.log(`Company ${companyName} not found in database - starting async analysis`);
       setState(prev => ({
         ...prev,
         progress: 'Starting AI analysis...',
@@ -80,7 +83,7 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
         estimatedCompletion: jobResponse.estimated_completion || null,
       }));
 
-      // Start polling
+      // Start polling for NEW companies only
       pollingRef.current = true;
       pollForCompletion(jobResponse.job_id);
 
