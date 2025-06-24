@@ -121,7 +121,7 @@ export function UnifiedSearch({
     let pollCount = 0;
     const maxPolls = 300;
     
-    // Poll every 3 seconds
+    // Poll database directly every 5 seconds (skip broken API)
     pollingIntervalRef.current = setInterval(async () => {
       pollCount++;
       
@@ -138,110 +138,89 @@ export function UnifiedSearch({
         }
         return;
       }
+
       try {
-        console.log(`📊 Checking job status via API...`);
-        const status = await api.getJobStatus(jobId);
-        console.log(`📊 API Job status:`, status);
+        // Check database directly (skip broken API)
+        console.log(`📊 Checking job status in database for ${jobId}`);
+        const dbResponse = await fetch(`/api/db/async-jobs/by-id/${jobId}`);
+        const dbData = await dbResponse.json();
         
-        // Update status based on API response
-        if (status.status === 'pending') {
-          setJobStatus("pending");
-        } else if (status.status === 'running') {
-          setJobStatus("running");
-        } else if (status.status === 'completed') {
-          setJobStatus("completed");
-          stopElapsedTimer();
+        if (dbData.success && dbData.data) {
+          const dbStatus = dbData.data.status;
+          console.log(`📊 Database job status: ${dbStatus}`);
           
-          // Stop polling
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
+          // Update status from database
+          setJobStatus(dbStatus);
           
-          // Find company in database by name for navigation
-          try {
-            console.log(`🔍 Finding company analysis for "${companyName}"`);
-            const dbResponse = await fetch(`/api/db/companies?search=${encodeURIComponent(companyName)}&limit=1`);
-            const dbData = await dbResponse.json();
+          if (dbStatus === 'completed') {
+            console.log(`✅ Job completed in database!`);
+            stopElapsedTimer();
             
-            if (dbData.success && dbData.data && dbData.data.length > 0) {
-              const company = dbData.data[0];
-              console.log(`✅ Found company analysis: ${company.company_name} (ID: ${company.id})`);
+            // Stop polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            
+            // Find company analysis by name for navigation
+            try {
+              console.log(`🔍 Finding company analysis for "${companyName}"`);
+              const companyResponse = await fetch(`/api/db/companies?search=${encodeURIComponent(companyName)}&limit=1`);
+              const companyData = await companyResponse.json();
               
-              setTimeout(() => {
-                setIsJobRunning(false);
-                router.push(`/dashboard/companies/${company.id}`);
-              }, 1500);
-            } else {
-              console.log(`⚠️ Company analysis not found, using fallback navigation`);
+              if (companyData.success && companyData.data && companyData.data.length > 0) {
+                const company = companyData.data[0];
+                console.log(`✅ Found company analysis: ${company.company_name} (ID: ${company.id})`);
+                
+                setTimeout(() => {
+                  setIsJobRunning(false);
+                  router.push(`/dashboard/companies/${company.id}`);
+                }, 1500);
+              } else {
+                console.log(`⚠️ Company analysis not found, using fallback navigation`);
+                setTimeout(() => {
+                  setIsJobRunning(false);
+                  router.push('/dashboard/companies');
+                }, 1500);
+              }
+            } catch (navError) {
+              console.error(`💥 Navigation error:`, navError);
               setTimeout(() => {
                 setIsJobRunning(false);
                 router.push('/dashboard/companies');
               }, 1500);
             }
-          } catch (navError) {
-            console.error(`💥 Navigation error:`, navError);
-            setTimeout(() => {
-              setIsJobRunning(false);
-              router.push('/dashboard/companies');
-            }, 1500);
+            
+          } else if (dbStatus === 'failed') {
+            console.error(`💥 Job failed in database`);
+            setJobError('Analysis failed');
+            setJobStatus("failed");
+            stopElapsedTimer();
+            
+            // Stop polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
           }
+          // For 'pending' or 'running', just continue polling
           
-        } else if (status.status === 'failed') {
-          console.error(`💥 Job failed:`, status.error_message);
-          setJobError(status.error_message || 'Analysis failed');
-          setJobStatus("failed");
-          stopElapsedTimer();
-          
-          // Stop polling
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
+        } else {
+          console.error(`💥 Failed to get job from database:`, dbData.error);
         }
         
       } catch (error) {
-        console.error(`💥 Error polling job status via API:`, error);
+        console.error(`💥 Error checking database job status:`, error);
+        setJobError('Failed to check analysis progress');
+        stopElapsedTimer();
         
-        // Fallback: Check database directly
-        try {
-          console.log(`🔍 API failed, checking database directly for job ${jobId}`);
-          const dbResponse = await fetch(`/api/db/async-jobs/by-id/${jobId}`);
-          const dbData = await dbResponse.json();
-          
-          if (dbData.success && dbData.data) {
-            console.log(`📊 Database job status:`, dbData.data.status);
-            
-            if (dbData.data.status === 'completed') {
-              setJobStatus("completed");
-              stopElapsedTimer();
-              
-              // Stop polling
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              
-              // Navigate using company name
-              setTimeout(() => {
-                setIsJobRunning(false);
-                router.push('/dashboard/companies');
-              }, 1500);
-            }
-          }
-        } catch (dbError) {
-          console.error(`💥 Database fallback also failed:`, dbError);
-          setJobError('Failed to check analysis progress');
-          stopElapsedTimer();
-          
-          // Stop polling on error
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-          }
+        // Stop polling on error
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
         }
       }
-    }, 3000); // Poll every 3 seconds
+    }, 5000); // Poll every 5 seconds
   };
   
   // Stop job polling
