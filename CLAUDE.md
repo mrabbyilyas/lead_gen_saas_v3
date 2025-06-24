@@ -5,12 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # LeadIntel - AI-Powered Lead Generation SaaS Platform
 
 ## Project Overview
-Production-ready SaaS platform providing AI-powered company intelligence and analysis using Google Gemini AI. Features a modern Next.js frontend with comprehensive dashboard and FastAPI backend with real-time database integration.
+Production-ready SaaS platform providing AI-powered company intelligence and analysis using Google Gemini AI. Features a modern Next.js frontend with comprehensive dashboard and FastAPI backend with real-time database integration. The system uses a hybrid architecture with direct database access and backend API fallbacks.
 
 ## Technology Stack
-- **Frontend**: Next.js 15, TypeScript, Shadcn/UI, TailwindCSS, React Query
+- **Frontend**: Next.js 15.3.4, TypeScript, Shadcn/UI, TailwindCSS, React Query
 - **Backend**: FastAPI, SQLAlchemy, PostgreSQL, Google Gemini AI
-- **Database**: Azure PostgreSQL with company analysis data
+- **Database**: Azure PostgreSQL with direct frontend access via `pg` client
 - **Authentication**: Client ID/Secret token-based system
 - **State Management**: React Query for API state, localStorage for auth
 
@@ -18,8 +18,8 @@ Production-ready SaaS platform providing AI-powered company intelligence and ana
 
 ### Frontend (frontend_v3/)
 ```bash
-npm run dev          # Development server with Turbopack
-npm run build        # Production build
+npm run dev          # Development server (uses default Next.js dev, not Turbopack)
+npm run build        # Production build with type checking
 npm run start        # Production server
 npm run lint         # ESLint code analysis
 ```
@@ -35,10 +35,12 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 ### Frontend Architecture (Next.js 15 App Router)
 - **App Router Structure**: All routes in `src/app/` with page.tsx files
-- **API Layer**: Centralized API client in `src/lib/api.ts` with TypeScript interfaces
+- **Hybrid Data Access**: Both direct database queries (`src/lib/database.ts`) and backend API calls (`src/lib/api.ts`)
+- **Database-First Pattern**: Direct PostgreSQL connection via `pg` client for performance
+- **API Routes for Database**: Custom API routes in `src/app/api/db/` for database operations
 - **AI Scoring System**: Centralized logic in `src/lib/ai-score.ts` for consistent company scoring
 - **Component Library**: Shadcn/UI components in `src/components/ui/`
-- **Custom Hooks**: `src/hooks/` for reusable logic (company data fetching, mobile detection)
+- **Custom Hooks**: `src/hooks/use-direct-company-data.ts` for database-backed React Query hooks
 
 ### Backend Architecture (FastAPI)
 - **Modular API Design**: Routes separated by domain (`auth`, `companies`, `admin`)
@@ -47,6 +49,12 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 - **Schema Validation**: Pydantic schemas in `app/schemas/` for request/response validation
 
 ### Key System Components
+
+#### Hybrid Database Architecture
+- **Direct Frontend Access**: Frontend connects directly to PostgreSQL via connection pool
+- **Database Config**: Environment variables for Azure PostgreSQL with special character password support
+- **API Route Layer**: Next.js API routes (`/api/db/*`) provide database abstraction
+- **Fallback Strategy**: Backend API used when direct database access fails
 
 #### Authentication Flow
 - Client ID/Secret authentication with JWT tokens
@@ -59,36 +67,40 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 - Handles both simple diversity scores and complex composite analysis
 - Consistent scoring interface across dashboard pages
 
-#### Company Data Pipeline
-1. Frontend search → `POST /companies/search`
-2. Backend fuzzy matching and Gemini AI analysis
-3. Database storage with structured analysis results
-4. Real-time display with export capabilities (CSV, JSON, summary)
+#### Company Search & Analysis Pipeline
+1. **Unified Search Component** (`src/components/unified-search.tsx`) - Real-time search with database-first approach
+2. **Real-time Database Search** → Direct PostgreSQL fuzzy matching via `/api/db/companies`
+3. **Async Analysis Fallback** → Backend `POST /companies/search/async` for new companies
+4. **Job Progress Tracking** → Direct database polling via `/api/db/async-jobs/by-id/{jobId}`
+5. **Real-time Status Updates** → Progress modal with elapsed timer and status indicators
 
 #### Database Schema
 - **Main Table**: `company_analysis` with JSON analysis results
-- **Async Jobs**: `async_jobs` table for background processing
+- **Async Jobs**: `async_jobs` table with columns: `job_id`, `company_name`, `status`, `result`, `progress_message`, `error_message`, `created_at`, `completed_at`
 - **Authentication**: `access_tokens` table for database-backed token storage
-- **Connection**: Azure PostgreSQL (configured via environment variables)
+- **Connection**: Azure PostgreSQL with direct frontend connection pool
 - **Fallback**: Demo data when database unavailable
 
 ## API Endpoints & Integration
 
-### Authentication
-- `POST /auth/token` - Generate access token with client credentials
-- Token expires after configured time, requires refresh
+### Database API Routes (Primary)
+- `GET /api/db/companies` - Direct database company search with fuzzy matching
+- `GET /api/db/companies/[id]` - Get specific company analysis from database
+- `GET /api/db/stats` - Dashboard statistics from database
+- `GET /api/db/health` - Database connection health check
+- `GET /api/db/async-jobs/by-id/[jobId]` - Check async job status from database
+- `GET /api/db/async-jobs/by-company/[company]` - Find jobs by company name
 
-### Company Intelligence
-- `POST /companies/search` - Search company by name, triggers AI analysis if needed
-- `POST /companies/search/async` - Start async company analysis (returns immediately with job_id)
-- `GET /companies/jobs/{job_id}/status` - Check status of async analysis job
-- `GET /companies/{id}` - Retrieve specific company analysis
+### Backend API (Fallback & New Analysis)
+- `POST /auth/token` - Generate access token with client credentials
+- `POST /companies/search/async` - Start async company analysis (returns job_id)
 - `PUT /admin/gemini-key` - Update Gemini API key (admin only)
 
-### Frontend API Usage
-- All API calls through singleton `api` instance from `src/lib/api.ts`
-- React Query for caching and state management
-- Automatic error handling with user-friendly fallbacks
+### Data Access Patterns
+- **Primary**: Direct database via `useDirectCompanies()`, `useDirectCompany()` hooks
+- **Search**: `useAdvancedCompanySearch()` with debouncing and real-time results
+- **Async Jobs**: Direct database polling every 5 seconds via `/api/db/async-jobs/by-id/{jobId}`
+- **Fallback**: Backend API when database operations fail
 
 ## Dashboard Features & Pages
 
@@ -110,7 +122,18 @@ python -m pytest tests/                 # Run test suite (if tests exist)
 
 ### Frontend Environment Variables
 ```bash
-NEXT_PUBLIC_API_BASE_URL=https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadacentral-01.azurewebsites.net  # Azure Backend URL
+# Backend API URL (for async analysis and auth)
+NEXT_PUBLIC_API_BASE_URL=https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadacentral-01.azurewebsites.net
+
+# Database access (required for direct PostgreSQL connection)
+DATABASE_HOST=<your_azure_postgresql_host>
+DATABASE_NAME=postgres
+DATABASE_PORT=5432
+DATABASE_USER=<your_database_user>
+DATABASE_PASSWORD=<password_with_special_chars>  # Handles special characters correctly
+
+# Optional: Database mode enforcement
+NEXT_PUBLIC_USE_DIRECT_DB=true
 ```
 
 ### Backend Environment Variables (see app/config.py and AZURE_ENVIRONMENT_VARIABLES.md)
@@ -129,12 +152,21 @@ GEMINI_API_KEY=<your_gemini_api_key>
 ## Data Flow & State Management
 
 ### Company Analysis Workflow
-1. **Search Input** → Frontend validation → API call
-2. **Backend Processing** → Fuzzy search → Gemini AI analysis → Database storage
-3. **Frontend Display** → React Query caching → Real-time updates → Export options
+1. **Unified Search** (`UnifiedSearch` component) → Real-time database search with debouncing
+2. **Database-First Search** → Direct PostgreSQL fuzzy matching via `/api/db/companies`
+3. **Async Analysis** → If not found, trigger `POST /companies/search/async` → Returns `job_id`
+4. **Progress Tracking** → Poll `/api/db/async-jobs/by-id/{job_id}` every 5 seconds
+5. **Completion** → Navigate to company analysis page when `status = "completed"`
+
+### Search & Progress UX
+- **Real-time Results**: Instant database search as user types
+- **Submit Handler**: Enter key triggers database check → async analysis fallback
+- **Progress Modal**: Elapsed timer, status indicators, direct database polling
+- **Navigation**: Automatic redirect to company analysis page on completion
 
 ### State Architecture
-- **Server State**: React Query for API data with smart caching
+- **Server State**: React Query for database API routes with smart caching
+- **Database State**: Direct hooks (`useDirectCompanies`, `useAdvancedCompanySearch`)
 - **Client State**: React hooks for UI state, localStorage for persistence
 - **Authentication State**: Token-based with automatic localStorage sync
 
@@ -184,21 +216,29 @@ GEMINI_API_KEY=<your_gemini_api_key>
 
 ## Critical Architecture Components
 
+### Direct Database Access Pattern
+- **Hybrid Architecture**: Frontend connects directly to PostgreSQL AND uses backend API
+- **Database Connection**: Connection pool via `pg` client with special character password support
+- **API Route Abstraction**: Next.js API routes in `/api/db/*` provide database operations
+- **Performance**: Direct queries eliminate backend API latency for common operations
+
 ### Async Processing System
 - **Problem Solved**: Azure App Service timeout issues with long-running Gemini AI analysis
 - **Solution**: Background job processing with immediate HTTP responses
 - **Implementation**: `app/core/async_processor.py` with threading and database job tracking
-- **Frontend Integration**: `useAsyncCompanySearch` hook with real-time progress updates
+- **Progress Tracking**: Direct database polling via `/api/db/async-jobs/by-id/{jobId}` every 5 seconds
+- **UI Integration**: `UnifiedSearch` component with progress modal and elapsed timer
 
-### Authentication Architecture
-- **Database-Backed Tokens**: Persistent token storage to survive container restarts
-- **Timezone Handling**: Uses `datetime.now(timezone.utc)` consistently
-- **Fallback Mechanisms**: Demo mode when backend unavailable
+### Search Architecture Evolution
+- **Old Pattern**: Complex async search hooks with backend API dependency
+- **New Pattern**: Unified search component with database-first approach
+- **Real-time Search**: Database queries as user types with debouncing
+- **Fallback Logic**: Backend async analysis only when company not found in database
 
-### Database Connection Strategy
-- **Environment Separation**: Database credentials in Azure App Service environment variables only
-- **Frontend Never Connects Directly**: Frontend → Backend API → PostgreSQL
-- **Connection Resilience**: Graceful degradation with demo data fallbacks
+### Database Schema Critical Details
+- **Column Names**: `async_jobs` table uses `completed_at` (NOT `updated_at`)
+- **Job Status Flow**: `pending` → `running` → `completed` | `failed`
+- **Fuzzy Search**: Enhanced PostgreSQL queries with relevance scoring in `searchCompaniesByName()`
 
 ## Deployment Architecture
 
@@ -212,4 +252,28 @@ GEMINI_API_KEY=<your_gemini_api_key>
 - **API Integration**: Enhanced error handling for network issues and JSON parsing
 - **Progressive Enhancement**: Works offline with cached data
 
-This platform is production-ready with real data integration, comprehensive error handling, professional UI design, and Azure-optimized async processing architecture suitable for enterprise use.
+## Key Development Patterns
+
+### Database Integration Best Practices
+- **Always use `completed_at`** (not `updated_at`) when working with `async_jobs` table
+- **Database queries first**: Check database via `/api/db/*` routes before backend API
+- **Connection pool management**: Use `getPool()` from `src/lib/database.ts` for PostgreSQL connections
+- **Environment validation**: Database config validates Azure PostgreSQL credentials with special character support
+
+### Search Implementation Guidelines
+- **Use `UnifiedSearch` component** for all new search interfaces
+- **Real-time search pattern**: `useAdvancedCompanySearch()` hook with debouncing
+- **Progress tracking**: Direct database polling every 5 seconds for async jobs
+- **Status indicators**: Use status-based UI (not percentage) for job progress
+
+### Component Architecture
+- **Unified Search** (`src/components/unified-search.tsx`): Main search component with database-first approach
+- **Direct Company Hooks** (`src/hooks/use-direct-company-data.ts`): Database-backed React Query hooks
+- **AI Score Calculation** (`src/lib/ai-score.ts`): Always use `calculateAIScore()` for consistent scoring
+
+### Error Handling Strategy
+- **Database fallbacks**: Always provide demo data when database operations fail
+- **Progress timeout**: 15-minute timeout for async job polling with user-friendly messages
+- **Column name validation**: Ensure database schema matches TypeScript interfaces
+
+This platform uses a hybrid architecture with direct database access for performance and backend API for AI analysis, providing production-ready enterprise functionality with comprehensive error handling and real-time progress tracking.
