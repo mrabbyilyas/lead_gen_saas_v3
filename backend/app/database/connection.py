@@ -5,16 +5,27 @@ from sqlalchemy.orm import sessionmaker, Session
 from app.config import settings
 from app.utils.logger import logger
 
-# Updated connection string for psycopg (version 3)
+# Optimized connection string for psycopg (version 3) with enhanced pooling
 engine = create_engine(
     settings.database_url,
-    pool_pre_ping=True,
-    pool_recycle=300,
+    # Connection pool optimization
+    pool_size=20,          # Increase pool size for concurrent requests
+    max_overflow=30,       # Allow overflow connections during peak
+    pool_pre_ping=True,    # Verify connections before use
+    pool_recycle=3600,     # Recycle connections every hour (was 300)
+    pool_timeout=30,       # Wait time for connection from pool
     echo=settings.DEBUG,
-    # Add these for better compatibility
+    # Enhanced connection arguments for Azure PostgreSQL
     connect_args={
-        "sslmode": "require",  # Azure PostgreSQL requires SSL
-        "connect_timeout": 10,
+        "sslmode": "require",              # Azure PostgreSQL requires SSL
+        "connect_timeout": 20,             # Increased connection timeout
+        "command_timeout": 60,             # Query execution timeout
+        "server_settings": {
+            "application_name": "LeadIntel-Backend",
+            "tcp_keepalives_idle": "600",
+            "tcp_keepalives_interval": "30",
+            "tcp_keepalives_count": "3",
+        }
     }
 )
 

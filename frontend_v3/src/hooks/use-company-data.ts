@@ -1,122 +1,133 @@
-// React hooks for company data management
+// Optimized React hooks for company data management with React Query
 
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CompanyAnalysis, DatabaseStats } from '@/lib/database';
 
-// Hook for fetching company list
+// Query key factory for better cache management
+const companyKeys = {
+  all: ['companies'] as const,
+  lists: () => [...companyKeys.all, 'list'] as const,
+  list: (search?: string, limit?: number) => [...companyKeys.lists(), { search, limit }] as const,
+  details: () => [...companyKeys.all, 'detail'] as const,
+  detail: (id: number) => [...companyKeys.details(), id] as const,
+  stats: () => ['companies', 'stats'] as const,
+};
+
+// Optimized hook for fetching company list with React Query
 export function useCompanies(search?: string, limit: number = 50) {
-  const [companies, setCompanies] = useState<CompanyAnalysis[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryResult = useQuery({
+    queryKey: companyKeys.list(search, limit),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        limit: limit.toString()
+      });
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const params = new URLSearchParams({
-          limit: limit.toString()
-        });
-
-        if (search) {
-          params.append('search', search);
-        }
-
-        const response = await fetch(`/api/companies?${params}`);
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch companies');
-        }
-
-        setCompanies(result.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Error fetching companies:', err);
-      } finally {
-        setLoading(false);
+      if (search?.trim()) {
+        params.append('search', search.trim());
       }
-    };
 
-    fetchCompanies();
-  }, [search, limit]);
+      const response = await fetch(`/api/companies?${params}`, {
+        headers: {
+          'Cache-Control': 'max-age=300', // 5 minute client cache
+        },
+      });
+      
+      const result = await response.json();
 
-  return { companies, loading, error, refetch: () => setLoading(true) };
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch companies');
+      }
+
+      return result.data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Don't retry on 4xx errors
+      if (error instanceof Error && error.message.includes('4')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
+
+  return {
+    companies: queryResult.data || [],
+    loading: queryResult.isLoading,
+    error: queryResult.error?.message || null,
+    refetch: queryResult.refetch,
+    isStale: queryResult.isStale,
+    isFetching: queryResult.isFetching,
+  };
 }
 
-// Hook for fetching individual company
+// Optimized hook for fetching individual company with React Query
 export function useCompany(id: number | null) {
-  const [company, setCompany] = useState<CompanyAnalysis | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryResult = useQuery({
+    queryKey: companyKeys.detail(id!),
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${id}`, {
+        headers: {
+          'Cache-Control': 'max-age=600', // 10 minute client cache for individual companies
+        },
+      });
+      
+      const result = await response.json();
 
-  useEffect(() => {
-    if (!id) {
-      setCompany(null);
-      setLoading(false);
-      return;
-    }
-
-    const fetchCompany = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/companies/${id}`);
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch company');
-        }
-
-        setCompany(result.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Error fetching company:', err);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch company');
       }
-    };
 
-    fetchCompany();
-  }, [id]);
+      return result.data;
+    },
+    enabled: !!id, // Only run query if id exists
+    staleTime: 10 * 60 * 1000, // 10 minutes - individual companies change less frequently
+    gcTime: 30 * 60 * 1000, // 30 minutes cache retention
+    refetchOnWindowFocus: false,
+  });
 
-  return { company, loading, error };
+  return {
+    company: queryResult.data || null,
+    loading: queryResult.isLoading,
+    error: queryResult.error?.message || null,
+    refetch: queryResult.refetch,
+  };
 }
 
-// Hook for fetching dashboard statistics
+// Optimized hook for fetching dashboard statistics with React Query
 export function useDashboardStats() {
-  const [stats, setStats] = useState<DatabaseStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryResult = useQuery({
+    queryKey: companyKeys.stats(),
+    queryFn: async () => {
+      const response = await fetch('/api/stats', {
+        headers: {
+          'Cache-Control': 'max-age=300', // 5 minute client cache for stats
+        },
+      });
+      
+      const result = await response.json();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch('/api/stats');
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch statistics');
-        }
-
-        setStats(result.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Error fetching stats:', err);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch statistics');
       }
-    };
 
-    fetchStats();
-  }, []);
+      return result.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes - stats can be cached shorter as they change more frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    retry: 2,
+  });
 
-  return { stats, loading, error, refetch: () => setLoading(true) };
+  return {
+    stats: queryResult.data || null,
+    loading: queryResult.isLoading,
+    error: queryResult.error?.message || null,
+    refetch: queryResult.refetch,
+    isStale: queryResult.isStale,
+  };
 }
 
 // Hook for debounced search
@@ -134,4 +145,34 @@ export function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
 
   return debouncedValue;
+}
+
+// Cache invalidation helper for when new companies are added
+export function useInvalidateCompanyCache() {
+  const queryClient = useQueryClient();
+  
+  return {
+    invalidateCompanyList: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
+    },
+    invalidateStats: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.stats() });
+    },
+    invalidateAll: () => {
+      queryClient.invalidateQueries({ queryKey: companyKeys.all });
+    },
+    // Prefetch a company for faster navigation
+    prefetchCompany: async (id: number) => {
+      await queryClient.prefetchQuery({
+        queryKey: companyKeys.detail(id),
+        queryFn: async () => {
+          const response = await fetch(`/api/companies/${id}`);
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error);
+          return result.data;
+        },
+        staleTime: 10 * 60 * 1000,
+      });
+    },
+  };
 }

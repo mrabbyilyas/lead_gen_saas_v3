@@ -85,7 +85,7 @@ class LeadIntelAPI {
     return headers;
   }
 
-  // Generic API request handler with enhanced error handling
+  // Optimized API request handler with performance enhancements
   private async request<T>(
     endpoint: string, 
     options: RequestInit = {}
@@ -93,16 +93,32 @@ class LeadIntelAPI {
     const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
-      headers: this.getAuthHeaders(),
+      headers: {
+        ...this.getAuthHeaders(),
+        'Accept-Encoding': 'gzip, br', // Request compression
+        'Connection': 'keep-alive', // Reuse connections
+      },
+      // Add timeout for better UX
+      signal: AbortSignal.timeout(30000), // 30 second timeout
       ...options,
     };
 
     try {
-      console.log(`🔗 Making API request to: ${url}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔗 Making API request to: ${url}`);
+      }
       
       const response = await fetch(url, config);
       
-      console.log(`📡 API Response status: ${response.status} ${response.statusText}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📡 API Response status: ${response.status} ${response.statusText}`);
+        
+        // Log performance metrics in development
+        const processTime = response.headers.get('X-Process-Time');
+        if (processTime) {
+          console.log(`⏱️ Server processing time: ${processTime}s`);
+        }
+      }
       
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
@@ -116,39 +132,60 @@ class LeadIntelAPI {
             const errorData = await response.json();
             errorMessage = errorData.detail || errorData.message || errorMessage;
           } else {
-            // Handle HTML error pages
-            const textResponse = await response.text();
-            console.error('Non-JSON error response:', textResponse.substring(0, 200));
+            // Handle HTML error pages (reduced logging in production)
+            if (process.env.NODE_ENV === 'development') {
+              const textResponse = await response.text();
+              console.error('Non-JSON error response:', textResponse.substring(0, 200));
+            }
             
             if (response.status === 502) {
-              errorMessage = 'Backend service unavailable (502). Please check if the backend server is running.';
+              errorMessage = 'Backend service unavailable. Please try again in a moment.';
             } else if (response.status === 404) {
-              errorMessage = 'API endpoint not found (404). Please check the backend configuration.';
+              errorMessage = 'Requested resource not found.';
             } else if (response.status === 500) {
-              errorMessage = 'Internal server error (500). Please check backend logs.';
+              errorMessage = 'Server error. Please try again later.';
+            } else if (response.status === 401) {
+              errorMessage = 'Authentication required. Please log in again.';
+            } else if (response.status === 403) {
+              errorMessage = 'Access denied. Please check your permissions.';
+            } else if (response.status >= 400 && response.status < 500) {
+              errorMessage = 'Request error. Please check your input and try again.';
             }
           }
         } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error parsing error response:', parseError);
+          }
         }
         
         throw new Error(errorMessage);
       }
 
       if (!isJSON) {
-        throw new Error('Server returned non-JSON response. Expected JSON data.');
+        throw new Error('Server returned invalid response format.');
       }
 
       const data = await response.json();
-      console.log(`✅ API request successful: ${endpoint}`);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ API request successful: ${endpoint}`);
+      }
+      
       return data;
       
     } catch (error) {
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error(`Network error: Cannot connect to backend at ${this.baseURL}. Please check if the backend server is running.`);
+      if (error instanceof DOMException && error.name === 'TimeoutError') {
+        throw new Error('Request timed out. Please check your connection and try again.');
       }
       
-      console.error(`❌ API request failed: ${endpoint}`, error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error(`Network error: Unable to connect to the server. Please check your internet connection.`);
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`❌ API request failed: ${endpoint}`, error);
+      }
+      
       throw error;
     }
   }

@@ -24,33 +24,40 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Building2, Search, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Database } from "lucide-react";
-import { useCompanies, useDebounce } from "@/hooks/use-company-data";
+import { useCompanies, useDebounce, useInvalidateCompanyCache } from "@/hooks/use-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { AsyncSearchForm } from "@/components/async-search-form";
 import { BackendStatus } from "@/components/backend-status";
+import { Suspense, lazy } from "react";
+
+// Lazy load heavy components
+const DataTable = lazy(() => import("@/components/ui/table").then(mod => ({ default: mod.Table })));
+const ExportDropdown = lazy(() => import("@/components/export-dropdown").then(mod => ({ default: mod.default })));
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
 export default function CompaniesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { invalidateCompanyList, prefetchCompany } = useInvalidateCompanyCache();
   
   // Use debounced search to avoid too many API calls
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Reduced debounce time
   
-  // Fetch real data from database
-  const { companies, loading: companiesLoading, error: companiesError } = useCompanies(
+  // Fetch real data from database with React Query
+  const { companies, loading: companiesLoading, error: companiesError, isFetching } = useCompanies(
     debouncedSearchQuery.trim() ? debouncedSearchQuery : undefined, 
     50
   );
 
-  // Handle search completion - refresh the companies list
+  // Handle search completion - invalidate cache to show new result
   const handleSearchComplete = (result: any) => {
-    // Trigger a refresh of the companies list to show new result
-    setRefreshKey(prev => prev + 1);
+    // Invalidate React Query cache to refresh the list
+    invalidateCompanyList();
     // Optionally navigate to the new company
-    // router.push(`/dashboard/companies/${result.id}`);
+    if (result?.id) {
+      router.push(`/dashboard/companies/${result.id}`);
+    }
   };
 
   // Handle search start
@@ -100,8 +107,14 @@ export default function CompaniesPage() {
     }
   };
 
-  // View company details
-  const handleViewCompany = (companyId: number) => {
+  // View company details with prefetching
+  const handleViewCompany = async (companyId: number) => {
+    // Prefetch the company data for faster navigation
+    try {
+      await prefetchCompany(companyId);
+    } catch (error) {
+      console.log('Prefetch failed, navigation will still work:', error);
+    }
     router.push(`/dashboard/companies/${companyId}`);
   };
 

@@ -43,51 +43,116 @@ async def list_companies(
     search: Optional[str] = Query(None, description="Search term for company name"),
     limit: int = Query(50, ge=1, le=100, description="Number of companies to return"),
     offset: int = Query(0, ge=0, description="Number of companies to skip"),
+    cursor: Optional[str] = Query(None, description="Cursor for pagination"),
     token: str = Depends(get_current_token),
     db: Session = Depends(get_db)
 ) -> CompanyListResponse:
-    """List all companies with optional search and pagination"""
+    """List all companies with optimized search and pagination"""
     
     try:
-        logger.info(f"Listing companies: search='{search}', limit={limit}, offset={offset}")
+        logger.info(f"Listing companies: search='{search}', limit={limit}, offset={offset}, cursor={cursor}")
         
-        # Build base query
+        # Use cursor-based pagination for better performance
         query = db.query(CompanyAnalysis)
         
-        # Apply search filter if provided
+        # Apply cursor filter for pagination (more efficient than offset)
+        if cursor:
+            try:
+                cursor_id = int(cursor)
+                query = query.filter(CompanyAnalysis.id < cursor_id)
+            except ValueError:
+                logger.warning(f"Invalid cursor format: {cursor}")
+        
+        # Apply search filter with optimized query
         if search:
-            search_term = f"%{search.strip()}%"
-            query = query.filter(
-                CompanyAnalysis.company_name.ilike(search_term) |
-                CompanyAnalysis.canonical_name.ilike(search_term)
+            search_term = search.strip().lower()
+            
+            # Use trigram similarity for fuzzy search (requires pg_trgm extension)
+            from sqlalchemy import func, or_, and_
+            
+            # Combine exact matches (high priority) with fuzzy matches
+            exact_condition = or_(
+                func.lower(CompanyAnalysis.company_name).like(f"%{search_term}%"),
+                func.lower(CompanyAnalysis.canonical_name).like(f"%{search_term}%")
             )
+            
+            # Fuzzy search using trigram similarity
+            fuzzy_condition = or_(
+                func.similarity(func.lower(CompanyAnalysis.company_name), search_term) > 0.3,
+                func.similarity(func.lower(CompanyAnalysis.canonical_name), search_term) > 0.3
+            )
+            
+            query = query.filter(or_(exact_condition, fuzzy_condition))
+            
+            # Order by relevance (exact matches first, then by similarity)
+            query = query.order_by(
+                func.similarity(func.lower(CompanyAnalysis.company_name), search_term).desc(),
+                CompanyAnalysis.created_at.desc()
+            )
+        else:
+            # Default ordering for non-search queries
+            query = query.order_by(CompanyAnalysis.created_at.desc())
         
-        # Get total count before pagination
-        total = query.count()
+        # Optimize total count query - only run when needed (first page)
+        total = None
+        if offset == 0 and not cursor:
+            # Only count on first page request for performance
+            count_query = db.query(CompanyAnalysis)
+            if search:
+                search_term = search.strip().lower()
+                from sqlalchemy import func, or_
+                exact_condition = or_(
+                    func.lower(CompanyAnalysis.company_name).like(f"%{search_term}%"),
+                    func.lower(CompanyAnalysis.canonical_name).like(f"%{search_term}%")
+                )
+                fuzzy_condition = or_(
+                    func.similarity(func.lower(CompanyAnalysis.company_name), search_term) > 0.3,
+                    func.similarity(func.lower(CompanyAnalysis.canonical_name), search_term) > 0.3
+                )
+                count_query = count_query.filter(or_(exact_condition, fuzzy_condition))
+            total = count_query.count()
         
-        # Apply pagination and ordering
-        companies = query.order_by(CompanyAnalysis.created_at.desc()).offset(offset).limit(limit).all()
+        # Apply pagination - use limit + 1 to check if there are more results
+        companies = query.offset(offset).limit(limit + 1).all()
         
-        # Convert to response format
-        company_responses = []
-        for company in companies:
-            company_responses.append(CompanySearchResponse(
+        # Check if there are more results
+        has_more = len(companies) > limit
+        if has_more:
+            companies = companies[:limit]  # Remove the extra record
+        
+        # Convert to response format with optimized list comprehension
+        company_responses = [
+            CompanySearchResponse(
                 id=company.id,
                 company_name=company.company_name,
                 canonical_name=company.canonical_name,
                 analysis_result=company.analysis_result,
                 status=company.status,
                 created_at=company.created_at
-            ))
+            )
+            for company in companies
+        ]
         
-        logger.info(f"Found {total} companies, returning {len(company_responses)} companies")
+        # Generate next cursor for pagination
+        next_cursor = None
+        if has_more and companies:
+            next_cursor = str(companies[-1].id)
         
-        return CompanyListResponse(
-            companies=company_responses,
-            total=total,
-            limit=limit,
-            offset=offset
-        )
+        logger.info(f"Found {len(company_responses)} companies (has_more: {has_more})")
+        
+        response_data = {
+            "companies": company_responses,
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "next_cursor": next_cursor
+        }
+        
+        # Include total only when available
+        if total is not None:
+            response_data["total"] = total
+        
+        return CompanyListResponse(**response_data)
         
     except Exception as e:
         logger.error(f"Error listing companies: {e}")

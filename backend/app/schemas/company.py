@@ -20,6 +20,8 @@ class CompanyNotFoundResponse(BaseModel):
 
 class CompanyListResponse(BaseModel):
     companies: List[CompanySearchResponse]
-    total: int
+    total: Optional[int] = None  # Made optional for performance
     limit: int
     offset: int
+    has_more: Optional[bool] = None  # Indicates if more results exist
+    next_cursor: Optional[str] = None  # Cursor for next page

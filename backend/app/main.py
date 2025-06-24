@@ -1,8 +1,10 @@
 import os
-from fastapi import FastAPI, HTTPException, Request, Header
+from fastapi import FastAPI, HTTPException, Request, Header, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+import time
 
 from app.database.connection import init_db
 from app.core.auth import cleanup_expired_tokens
@@ -36,6 +38,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add compression middleware for better performance
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # CORS middleware - allow all origins for now to fix CORS issues
 allowed_origins = ["*"]
 
@@ -44,8 +49,38 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Cache-Control"],
 )
+
+# Add performance middleware for response caching headers
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    # Add performance headers
+    response.headers["X-Process-Time"] = str(process_time)
+    
+    # Add cache headers based on endpoint
+    if request.url.path.startswith("/companies"):
+        if request.method == "GET":
+            if "search" in str(request.query_params):
+                # Search results cache for 5 minutes
+                response.headers["Cache-Control"] = "public, max-age=300"
+            else:
+                # Company lists cache for 10 minutes
+                response.headers["Cache-Control"] = "public, max-age=600"
+        response.headers["ETag"] = f'"companies-{hash(str(request.query_params))}"'
+    elif request.url.path == "/stats":
+        # Stats cache for 2 minutes
+        response.headers["Cache-Control"] = "public, max-age=120"
+        response.headers["ETag"] = f'"stats-{int(time.time() // 120)}"'
+    elif request.url.path in ["/health", "/"]:
+        # Health check cache for 1 minute
+        response.headers["Cache-Control"] = "public, max-age=60"
+    
+    return response
 
 # Exception handlers
 @app.exception_handler(APIException)
