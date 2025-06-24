@@ -83,8 +83,7 @@ class DatabaseService {
       user: dbConfig.user,
       password: dbConfig.password,
       ssl: dbConfig.ssl,
-      connectionTimeoutMillis: dbConfig.connectionTimeoutMillis,
-      idleTimeoutMillis: dbConfig.idleTimeoutMillis
+      connectionTimeoutMillis: dbConfig.connectionTimeoutMillis
     });
   }
 

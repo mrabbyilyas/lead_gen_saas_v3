@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
     if (!companies.length) return null;
 
     // Calculate AI scores for all companies using centralized system
-    const companiesWithScores = companies.map(company => {
+    const companiesWithScores = companies.map((company: any) => {
       const aiScore = calculateAIScore(company.analysis_result);
       return {
         ...company,
@@ -42,10 +42,10 @@ export default function AnalyticsPage() {
       };
     });
 
-    const scoredCompanies = companiesWithScores.filter(c => c.hasValidScore);
-    const highScoreCount = scoredCompanies.filter(c => c.calculatedScore >= 8).length;
-    const mediumScoreCount = scoredCompanies.filter(c => c.calculatedScore >= 6 && c.calculatedScore < 8).length;
-    const lowScoreCount = scoredCompanies.filter(c => c.calculatedScore < 6).length;
+    const scoredCompanies = companiesWithScores.filter((c: any) => c.hasValidScore);
+    const highScoreCount = scoredCompanies.filter((c: any) => c.calculatedScore >= 8).length;
+    const mediumScoreCount = scoredCompanies.filter((c: any) => c.calculatedScore >= 6 && c.calculatedScore < 8).length;
+    const lowScoreCount = scoredCompanies.filter((c: any) => c.calculatedScore < 6).length;
     
     const industries = companies.reduce((acc, company) => {
       if (company.industry && company.industry !== 'Technology') {

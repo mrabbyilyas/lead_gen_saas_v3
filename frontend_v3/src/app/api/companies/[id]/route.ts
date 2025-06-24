@@ -4,10 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const companyId = parseInt(params.id);
+    const resolvedParams = await params;
+    const companyId = parseInt(resolvedParams.id);
     
     if (isNaN(companyId)) {
       return NextResponse.json({
@@ -80,7 +81,8 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error(`API Error - /api/companies/${params.id}:`, error);
+    const resolvedParams = await params;
+    console.error(`API Error - /api/companies/${resolvedParams.id}:`, error);
     
     return NextResponse.json({
       success: false,

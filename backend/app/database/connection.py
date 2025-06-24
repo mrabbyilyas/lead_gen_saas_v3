@@ -19,7 +19,6 @@ engine = create_engine(
     connect_args={
         "sslmode": "require",              # Azure PostgreSQL requires SSL
         "connect_timeout": 20,             # Increased connection timeout
-        "command_timeout": 60,             # Query execution timeout
         "server_settings": {
             "application_name": "LeadIntel-Backend",
             "tcp_keepalives_idle": "600",

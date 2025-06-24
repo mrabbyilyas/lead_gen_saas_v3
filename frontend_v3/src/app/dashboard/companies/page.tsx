@@ -28,11 +28,6 @@ import { useCompanies, useDebounce, useInvalidateCompanyCache } from "@/hooks/us
 import { SystemStatusIndicator } from "@/components/system-status";
 import { AsyncSearchForm } from "@/components/async-search-form";
 import { BackendStatus } from "@/components/backend-status";
-import { Suspense, lazy } from "react";
-
-// Lazy load heavy components
-const DataTable = lazy(() => import("@/components/ui/table").then(mod => ({ default: mod.Table })));
-const ExportDropdown = lazy(() => import("@/components/export-dropdown").then(mod => ({ default: mod.default })));
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 
