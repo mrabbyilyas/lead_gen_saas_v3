@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Building2, ArrowRight, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Search, Building2, ArrowRight, Loader2, Brain, CheckCircle, XCircle } from "lucide-react";
 import { useAdvancedCompanySearch } from "@/hooks/use-direct-company-data";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
 import { api } from "@/lib/api";
@@ -27,6 +29,15 @@ export function UnifiedSearch({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   
+  // Async job progress states
+  const [isJobRunning, setIsJobRunning] = useState(false);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState(0);
+  const [jobStatus, setJobStatus] = useState<string>("");
+  const [jobCompanyName, setJobCompanyName] = useState<string>("");
+  const [jobError, setJobError] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Use the same working search logic from scoring page
   const {
     searchTerm,
@@ -45,6 +56,99 @@ export function UnifiedSearch({
   useEffect(() => {
     setSearchTerm(searchQuery);
   }, [searchQuery, setSearchTerm]);
+  
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+  
+  // Start job polling
+  const startJobPolling = (jobId: string, companyName: string) => {
+    setCurrentJobId(jobId);
+    setJobCompanyName(companyName);
+    setIsJobRunning(true);
+    setJobProgress(10); // Start with 10% to show something is happening
+    setJobStatus("Starting analysis...");
+    setJobError(null);
+    
+    console.log(`🔄 Starting job polling for ${companyName} (Job ID: ${jobId})`);
+    
+    // Poll every 3 seconds
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await api.getJobStatus(jobId);
+        console.log(`📊 Job status update:`, status);
+        
+        // Update progress based on status
+        if (status.status === 'pending') {
+          setJobProgress(20);
+          setJobStatus("Initializing analysis...");
+        } else if (status.status === 'running') {
+          setJobProgress(prev => Math.min(prev + 10, 80)); // Gradually increase to 80%
+          setJobStatus(status.progress_message || "Analyzing company data...");
+        } else if (status.status === 'completed') {
+          setJobProgress(100);
+          setJobStatus("Analysis complete!");
+          
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          
+          // Navigate to company page after a brief delay
+          setTimeout(() => {
+            setIsJobRunning(false);
+            if (status.result?.id) {
+              router.push(`/dashboard/companies/${status.result.id}`);
+            } else {
+              // Fallback to companies list
+              router.push('/dashboard/companies');
+            }
+          }, 1500);
+          
+        } else if (status.status === 'failed') {
+          console.error(`💥 Job failed:`, status.error_message);
+          setJobError(status.error_message || 'Analysis failed');
+          setJobStatus("Analysis failed");
+          
+          // Stop polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+        
+      } catch (error) {
+        console.error(`💥 Error polling job status:`, error);
+        setJobError('Failed to check analysis progress');
+        
+        // Stop polling on error
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+  };
+  
+  // Stop job polling
+  const stopJobPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsJobRunning(false);
+    setCurrentJobId(null);
+    setJobProgress(0);
+    setJobStatus("");
+    setJobCompanyName("");
+    setJobError(null);
+  };
   
   // Handle company selection (click on result)
   const handleCompanySelect = async (company: any) => {
@@ -94,9 +198,8 @@ export function UnifiedSearch({
         const asyncResult = await api.searchCompanyAsync({ company_name: searchQuery.trim() });
         console.log(`🔄 Async analysis started for "${searchQuery}":`, asyncResult.job_id);
         
-        // Navigate to a results page or show progress
-        // For now, let's redirect to the dashboard companies page
-        router.push('/dashboard/companies');
+        // Start job polling instead of redirecting immediately
+        startJobPolling(asyncResult.job_id, searchQuery.trim());
         
       } catch (asyncError: any) {
         console.error(`💥 Async analysis failed for "${searchQuery}":`, asyncError);
@@ -266,6 +369,82 @@ export function UnifiedSearch({
           </CardContent>
         </Card>
       )}
+      
+      {/* Async Job Progress Modal */}
+      <Dialog open={isJobRunning} onOpenChange={(open) => {
+        if (!open) {
+          stopJobPolling();
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-blue-500" />
+              AI Analysis in Progress
+            </DialogTitle>
+            <DialogDescription>
+              Analyzing <strong>{jobCompanyName}</strong> using advanced AI
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{jobStatus}</span>
+                <span className="font-mono text-xs">{jobProgress}%</span>
+              </div>
+              <Progress value={jobProgress} className="h-2" />
+            </div>
+            
+            {/* Status Icon and Message */}
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              {jobError ? (
+                <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+              ) : jobProgress === 100 ? (
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+              ) : (
+                <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
+              )}
+              
+              <div className="flex-1 min-w-0">
+                {jobError ? (
+                  <div>
+                    <p className="text-sm font-medium text-red-600">Analysis Failed</p>
+                    <p className="text-xs text-red-500">{jobError}</p>
+                  </div>
+                ) : jobProgress === 100 ? (
+                  <div>
+                    <p className="text-sm font-medium text-green-600">Analysis Complete!</p>
+                    <p className="text-xs text-muted-foreground">Redirecting to results...</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium">Analyzing {jobCompanyName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {currentJobId && <span className="font-mono">Job ID: {currentJobId.substring(0, 8)}...</span>}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2">
+              {jobError && (
+                <Button variant="outline" size="sm" onClick={stopJobPolling}>
+                  Close
+                </Button>
+              )}
+              {!jobError && jobProgress < 100 && (
+                <Button variant="outline" size="sm" onClick={stopJobPolling}>
+                  Cancel Analysis
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
