@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { api, CompanySearchResponse, AsyncJobStatus } from '@/lib/api';
 
 export interface AsyncSearchState {
@@ -94,11 +94,34 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
   }, []);
 
   const pollForCompletion = useCallback(async (jobId: string) => {
+    let pollCount = 0;
+    const maxPolls = 60; // Maximum 5 minutes (60 polls * 5 seconds)
+    
     const poll = async () => {
-      if (!pollingRef.current) return;
+      // Safety checks
+      if (!pollingRef.current) {
+        console.log('Polling stopped - ref is false');
+        return;
+      }
+      
+      if (pollCount >= maxPolls) {
+        console.log('Polling stopped - max attempts reached');
+        setState(prev => ({
+          ...prev,
+          isSearching: false,
+          error: 'Analysis timed out after 5 minutes',
+          progress: 'Timeout - analysis took too long',
+        }));
+        pollingRef.current = false;
+        return;
+      }
+
+      pollCount++;
+      console.log(`Polling attempt ${pollCount}/${maxPolls} for job ${jobId}`);
 
       try {
         const status = await api.getJobStatus(jobId);
+        console.log(`Job ${jobId} status:`, status.status);
         
         setState(prev => ({
           ...prev,
@@ -106,18 +129,20 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
           progress: status.progress_message || prev.progress,
         }));
 
-        if (status.status === 'completed' && status.result) {
-          // Success - analysis completed
+        // Check for terminal states
+        if (status.status === 'completed') {
+          console.log(`Job ${jobId} completed successfully`);
           setState(prev => ({
             ...prev,
             isSearching: false,
-            result: status.result!,
+            result: status.result || null,
             progress: 'Analysis completed successfully',
           }));
           pollingRef.current = false;
+          return; // Stop polling
           
         } else if (status.status === 'failed') {
-          // Failed - show error
+          console.log(`Job ${jobId} failed:`, status.error_message);
           setState(prev => ({
             ...prev,
             isSearching: false,
@@ -125,13 +150,27 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
             progress: 'Analysis failed',
           }));
           pollingRef.current = false;
+          return; // Stop polling
           
-        } else {
+        } else if (status.status === 'processing' || status.status === 'pending') {
           // Still processing - continue polling
+          console.log(`Job ${jobId} still processing, scheduling next poll...`);
           setTimeout(poll, 5000); // Poll every 5 seconds
+        } else {
+          // Unknown status - treat as error
+          console.log(`Job ${jobId} unknown status:`, status.status);
+          setState(prev => ({
+            ...prev,
+            isSearching: false,
+            error: `Unknown job status: ${status.status}`,
+            progress: 'Analysis failed',
+          }));
+          pollingRef.current = false;
+          return; // Stop polling
         }
         
       } catch (error) {
+        console.error(`Error polling job ${jobId}:`, error);
         setState(prev => ({
           ...prev,
           isSearching: false,
@@ -157,6 +196,14 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
   const clearResults = useCallback(() => {
     pollingRef.current = false;
     setState(initialState);
+  }, []);
+
+  // Cleanup effect - stop polling on unmount
+  useEffect(() => {
+    return () => {
+      console.log('useAsyncCompanySearch unmounting - stopping polling');
+      pollingRef.current = false;
+    };
   }, []);
 
   return [

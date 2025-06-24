@@ -253,7 +253,8 @@ async def get_company_analysis(
 @router.post("/search/async", response_model=AsyncJobResponse)
 async def search_company_async(
     request: CompanySearchRequest,
-    token: str = Depends(get_current_token)
+    token: str = Depends(get_current_token),
+    db: Session = Depends(get_db)
 ) -> AsyncJobResponse:
     """Start async company search - returns immediately with job_id"""
     
@@ -264,7 +265,26 @@ async def search_company_async(
         
         logger.info(f"🚀 Starting async search for company: '{company_name}'")
         
-        # Create async job and start background processing
+        # First check if company already exists in database to avoid duplicate jobs
+        search_result = search_company(db, company_name)
+        
+        if search_result["found_existing"]:
+            company = search_result["company"]
+            logger.info(f"Found existing analysis for '{company_name}' (match type: {search_result['match_type']}) - returning immediately")
+            
+            # Return a "completed" job immediately with the existing result
+            job_id = f"existing_{company.id}_{int(datetime.now(timezone.utc).timestamp())}"
+            
+            return AsyncJobResponse(
+                job_id=job_id,
+                status="completed",
+                progress_message=f"Found existing analysis for {company.canonical_name or company.company_name}",
+                created_at=datetime.now(timezone.utc),
+                estimated_completion=datetime.now(timezone.utc)  # Already complete
+            )
+        
+        # No existing record found - create async job and start background processing
+        logger.info(f"No existing record found for '{company_name}' - creating async job")
         job_id = create_async_job(company_name)
         
         # Estimate completion time (5 minutes)
@@ -288,11 +308,44 @@ async def search_company_async(
 @router.get("/jobs/{job_id}/status", response_model=AsyncJobStatus)
 async def get_job_status_endpoint(
     job_id: str,
-    token: str = Depends(get_current_token)
+    token: str = Depends(get_current_token),
+    db: Session = Depends(get_db)
 ) -> AsyncJobStatus:
     """Get status of async job"""
     
     try:
+        # Check if this is an "existing" job ID (for companies found in database)
+        if job_id.startswith("existing_"):
+            # Parse company ID from existing job ID format: existing_{company_id}_{timestamp}
+            try:
+                parts = job_id.split("_")
+                if len(parts) >= 2:
+                    company_id = int(parts[1])
+                    
+                    # Get the existing company from database
+                    company = db.query(CompanyAnalysis).filter(CompanyAnalysis.id == company_id).first()
+                    
+                    if company:
+                        logger.info(f"Returning existing company result for job {job_id}")
+                        return AsyncJobStatus(
+                            job_id=job_id,
+                            status="completed",
+                            progress_message=f"Found existing analysis for {company.canonical_name or company.company_name}",
+                            result=CompanySearchResponse(
+                                id=company.id,
+                                company_name=company.company_name,
+                                canonical_name=company.canonical_name,
+                                analysis_result=company.analysis_result,
+                                status=company.status,
+                                created_at=company.created_at
+                            ),
+                            created_at=datetime.now(timezone.utc),
+                            completed_at=datetime.now(timezone.utc)
+                        )
+            except (ValueError, IndexError):
+                logger.warning(f"Invalid existing job ID format: {job_id}")
+        
+        # Regular async job - check with async processor
         job_status = get_job_status(job_id)
         
         if not job_status:
