@@ -253,7 +253,9 @@ class DatabaseService {
   // Get all company analyses with pagination (optimized for performance)
   async getCompanyAnalyses(limit: number = 50, offset: number = 0): Promise<CompanyAnalysis[]> {
     try {
-      // Optimized query with index hints for faster performance
+      console.log('🔍 DEBUG: getCompanyAnalyses called with limit:', limit, 'offset:', offset);
+      
+      // Fixed query to match stats query - no status filtering to show all companies
       const query = `
         SELECT 
           id,
@@ -264,26 +266,43 @@ class DatabaseService {
           status,
           created_at
         FROM company_analysis
-        WHERE status = 'completed'  -- Filter out incomplete analyses for better performance
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
       `;
+      
+      console.log('🔍 DEBUG: Query SQL:', query);
+      console.log('🔍 DEBUG: Query params:', [limit, offset]);
       
       const start = Date.now();
       const result = await executeQuery(query, [limit, offset]);
       const duration = Date.now() - start;
       
+      console.log('🔍 DEBUG: Raw query results:', {
+        rowCount: result.rows.length,
+        duration: duration,
+        firstRow: result.rows[0],
+        allStatuses: result.rows.map(r => r.status),
+        statusCounts: result.rows.reduce((acc, r) => {
+          acc[r.status || 'null'] = (acc[r.status || 'null'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+      
       if (duration > 1000) {
         console.warn(`⚠️ Slow query detected: getCompanyAnalyses took ${duration}ms`);
       }
       
-      return result.rows.map(row => ({
+      const mappedResults = result.rows.map(row => ({
         ...row,
         // Extract additional fields from analysis_result if available
         score: this.extractScore(row.analysis_result),
         industry: this.extractIndustry(row.analysis_result),
         revenue_range: this.extractRevenueRange(row.analysis_result)
       }));
+      
+      console.log('🔍 DEBUG: Mapped results count:', mappedResults.length);
+      
+      return mappedResults;
       
     } catch (error) {
       console.error('Error fetching company analyses:', error);
@@ -347,9 +366,11 @@ class DatabaseService {
   // Search companies by name with fuzzy matching (using connection pool)
   async searchCompaniesByName(searchTerm: string, limit: number = 20): Promise<CompanyAnalysis[]> {
     try {
+      console.log('🔍 DEBUG: searchCompaniesByName called with term:', searchTerm, 'limit:', limit);
+      
       const start = Date.now();
       
-      // Optimized search query with better performance
+      // Fixed search query to match stats - no status filtering to show all companies
       const query = `
         SELECT 
           id,
@@ -369,39 +390,55 @@ class DatabaseService {
             ELSE 0
           END as relevance_score
         FROM company_analysis
-        WHERE 
-          status = 'completed'  -- Only search completed analyses
-          AND (
-            LOWER(company_name) ILIKE $1 
-            OR LOWER(canonical_name) ILIKE $1
-            OR LOWER(search_query) ILIKE $1
-            OR LOWER(company_name) = LOWER($2)
-            OR LOWER(canonical_name) = LOWER($2)
-          )
+        WHERE (
+          LOWER(company_name) ILIKE $1 
+          OR LOWER(canonical_name) ILIKE $1
+          OR LOWER(search_query) ILIKE $1
+          OR LOWER(company_name) = LOWER($2)
+          OR LOWER(canonical_name) = LOWER($2)
+        )
         ORDER BY 
           relevance_score DESC,
           created_at DESC
         LIMIT $3
       `;
       
+      console.log('🔍 DEBUG: Search query SQL:', query);
+      
       const searchPattern = `%${searchTerm.trim()}%`;
       const exactTerm = searchTerm.trim();
+      
+      console.log('🔍 DEBUG: Search params:', { searchPattern, exactTerm, limit });
       
       const result = await executeQuery(query, [searchPattern, exactTerm, limit]);
       
       const queryDuration = Date.now() - start;
       console.log(`🔍 Search query for "${searchTerm}" completed in ${queryDuration}ms (${result.rows.length} results)`);
       
+      console.log('🔍 DEBUG: Search results:', {
+        rowCount: result.rows.length,
+        firstResult: result.rows[0],
+        allStatuses: result.rows.map(r => r.status),
+        statusCounts: result.rows.reduce((acc, r) => {
+          acc[r.status || 'null'] = (acc[r.status || 'null'] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+      
       if (queryDuration > 1500) {
         console.warn(`⚠️ Slow search query detected: ${queryDuration}ms for "${searchTerm}"`);
       }
       
-      return result.rows.map(row => ({
+      const mappedResults = result.rows.map(row => ({
         ...row,
         score: this.extractScore(row.analysis_result),
         industry: this.extractIndustry(row.analysis_result),
         revenue_range: this.extractRevenueRange(row.analysis_result)
       }));
+      
+      console.log('🔍 DEBUG: Search mapped results count:', mappedResults.length);
+      
+      return mappedResults;
       
     } catch (error) {
       console.error('Error searching companies:', error);
