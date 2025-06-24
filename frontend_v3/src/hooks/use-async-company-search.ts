@@ -87,8 +87,8 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
       }));
       
       try {
-        // Check for existing async jobs (will create this endpoint)
-        const jobResponse = await fetch(`/api/db/async-jobs/${encodeURIComponent(companyName)}/status`);
+        // Check for existing async jobs
+        const jobResponse = await fetch(`/api/db/async-jobs/by-company/${encodeURIComponent(companyName)}`);
         const jobData = await jobResponse.json();
         
         if (jobData.success) {
@@ -167,7 +167,7 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
       console.log(`📊 Checking job ${jobId} status in database first...`);
       
       try {
-        const dbResponse = await fetch(`/api/db/async-jobs/${jobId}/status`);
+        const dbResponse = await fetch(`/api/db/async-jobs/by-id/${jobId}`);
         const dbData = await dbResponse.json();
         
         if (dbData.success && dbData.data) {
