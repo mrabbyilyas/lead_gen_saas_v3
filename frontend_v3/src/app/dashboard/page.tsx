@@ -24,7 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Building2, TrendingUp, Users, DollarSign, BarChart3, ArrowUpRight, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart } from "lucide-react";
 import { useDirectCompanies, useDirectDashboardStats } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
-import { EnhancedAsyncSearchForm } from "@/components/enhanced-async-search-form";
+import { UnifiedSearch } from "@/components/unified-search";
 import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON, exportSummaryStats } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
@@ -47,13 +47,6 @@ export default function DashboardPage() {
   
   const companies = dashboardData?.recent_companies || companiesData?.companies || [];
 
-  // Handle async search completion
-  const handleAsyncSearchComplete = (result: any) => {
-    // Navigate to company detail page when search completes
-    if (result?.id) {
-      router.push(`/dashboard/companies/${result.id}`);
-    }
-  };
 
   // Parse analysis result for display - using correct paths from individual company page
   const getAnalysisData = (analysisResult: any) => {
@@ -208,10 +201,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Enhanced Async Search Section */}
-          <EnhancedAsyncSearchForm 
-            onSearchComplete={handleAsyncSearchComplete}
-            className="w-full"
+          {/* Unified Search Section */}
+          <UnifiedSearch 
+            placeholder="Search for any company (database first, then AI analysis if needed)..."
+            showResults={true}
           />
 
           {/* Stats Cards */}

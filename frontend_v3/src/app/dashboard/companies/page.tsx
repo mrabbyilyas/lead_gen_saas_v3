@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Building2, Search, Filter, Download, Eye, RefreshCw, FileText, FileJson, BarChart, Database } from "lucide-react";
 import { useDirectCompanies, useDirectCompanyCache, useAdvancedCompanySearch } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
-import { EnhancedAsyncSearchForm } from "@/components/enhanced-async-search-form";
+import { UnifiedSearch } from "@/components/unified-search";
 import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
@@ -51,20 +51,6 @@ export default function CompaniesPage() {
   // Extract companies from search results
   const companies = searchResults?.companies || [];
 
-  // Handle search completion - invalidate cache to show new result
-  const handleSearchComplete = (result: any) => {
-    // Invalidate React Query cache to refresh the list
-    invalidateCompanyList();
-    // Optionally navigate to the new company
-    if (result?.id) {
-      router.push(`/dashboard/companies/${result.id}`);
-    }
-  };
-
-  // Handle search start
-  const handleSearchStart = () => {
-    console.log('Enhanced search started...');
-  };
 
   // Sync search query with advanced search
   const handleSearchQueryChange = (value: string) => {
@@ -197,10 +183,10 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* Enhanced AI-Powered Search Section */}
-          <EnhancedAsyncSearchForm 
-            onSearchComplete={handleSearchComplete}
-            onSearchStart={handleSearchStart}
+          {/* Unified Search Section */}
+          <UnifiedSearch 
+            placeholder="Search for any company (database first, then AI analysis if needed)..."
+            showResults={true}
           />
 
           {/* Database Search Section */}
