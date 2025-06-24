@@ -34,7 +34,7 @@ export async function GET(
             error_message: job.error_message,
             source: 'database',
             created_at: job.created_at,
-            updated_at: job.updated_at
+            completed_at: job.completed_at
           }
         });
       }
@@ -54,7 +54,7 @@ export async function GET(
           error_message: job.error_message,
           source: 'database',
           created_at: job.created_at,
-          updated_at: job.updated_at
+          completed_at: job.completed_at
         }
       });
     }

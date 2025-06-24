@@ -76,7 +76,7 @@ export interface AsyncJob {
   progress_message?: string | null;
   error_message?: string | null;
   created_at: Date;
-  updated_at: Date;
+  completed_at: Date;
 }
 
 // Singleton pool instance
@@ -700,7 +700,7 @@ class DatabaseService {
           progress_message,
           error_message,
           created_at, 
-          updated_at
+          completed_at
         FROM async_jobs 
         WHERE job_id = $1
       `;
@@ -716,7 +716,7 @@ class DatabaseService {
       console.log(`✅ Found async job ${jobId}:`, {
         company_name: job.company_name,
         status: job.status,
-        updated_at: job.updated_at
+        completed_at: job.completed_at
       });
       
       return job;
