@@ -32,11 +32,13 @@ export function UnifiedSearch({
   // Async job progress states
   const [isJobRunning, setIsJobRunning] = useState(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [jobProgress, setJobProgress] = useState(0);
   const [jobStatus, setJobStatus] = useState<string>("");
   const [jobCompanyName, setJobCompanyName] = useState<string>("");
   const [jobError, setJobError] = useState<string | null>(null);
+  const [jobStartTime, setJobStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<string>("0s");
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Use the same working search logic from scoring page
   const {
@@ -57,42 +59,98 @@ export function UnifiedSearch({
     setSearchTerm(searchQuery);
   }, [searchQuery, setSearchTerm]);
   
-  // Cleanup polling on unmount
+  // Cleanup polling and timer on unmount
   useEffect(() => {
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     };
   }, []);
+  
+  // Format elapsed time
+  const formatElapsedTime = (startTime: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - startTime.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(diffSeconds / 60);
+    const seconds = diffSeconds % 60;
+    
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  };
+  
+  // Start elapsed timer
+  const startElapsedTimer = (startTime: Date) => {
+    setJobStartTime(startTime);
+    setElapsedTime("0s");
+    
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedTime(formatElapsedTime(startTime));
+    }, 1000);
+  };
+  
+  // Stop elapsed timer
+  const stopElapsedTimer = () => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
   
   // Start job polling
   const startJobPolling = (jobId: string, companyName: string) => {
     setCurrentJobId(jobId);
     setJobCompanyName(companyName);
     setIsJobRunning(true);
-    setJobProgress(10); // Start with 10% to show something is happening
-    setJobStatus("Starting analysis...");
+    setJobStatus("pending");
     setJobError(null);
+    
+    // Start elapsed timer
+    const startTime = new Date();
+    startElapsedTimer(startTime);
     
     console.log(`🔄 Starting job polling for ${companyName} (Job ID: ${jobId})`);
     
+    // Timeout after 15 minutes (300 polls at 3 second intervals)
+    let pollCount = 0;
+    const maxPolls = 300;
+    
     // Poll every 3 seconds
     pollingIntervalRef.current = setInterval(async () => {
-      try {
-        const status = await api.getJobStatus(jobId);
-        console.log(`📊 Job status update:`, status);
+      pollCount++;
+      
+      // Check for timeout
+      if (pollCount >= maxPolls) {
+        console.log(`⏰ Job polling timeout after 15 minutes for ${companyName}`);
+        setJobError('Analysis is taking longer than expected. Please check back later or try again.');
+        setJobStatus("failed");
+        stopElapsedTimer();
         
-        // Update progress based on status
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        return;
+      }
+      try {
+        console.log(`📊 Checking job status via API...`);
+        const status = await api.getJobStatus(jobId);
+        console.log(`📊 API Job status:`, status);
+        
+        // Update status based on API response
         if (status.status === 'pending') {
-          setJobProgress(20);
-          setJobStatus("Initializing analysis...");
+          setJobStatus("pending");
         } else if (status.status === 'running') {
-          setJobProgress(prev => Math.min(prev + 10, 80)); // Gradually increase to 80%
-          setJobStatus(status.progress_message || "Analyzing company data...");
+          setJobStatus("running");
         } else if (status.status === 'completed') {
-          setJobProgress(100);
-          setJobStatus("Analysis complete!");
+          setJobStatus("completed");
+          stopElapsedTimer();
           
           // Stop polling
           if (pollingIntervalRef.current) {
@@ -100,21 +158,40 @@ export function UnifiedSearch({
             pollingIntervalRef.current = null;
           }
           
-          // Navigate to company page after a brief delay
-          setTimeout(() => {
-            setIsJobRunning(false);
-            if (status.result?.id) {
-              router.push(`/dashboard/companies/${status.result.id}`);
+          // Find company in database by name for navigation
+          try {
+            console.log(`🔍 Finding company analysis for "${companyName}"`);
+            const dbResponse = await fetch(`/api/db/companies?search=${encodeURIComponent(companyName)}&limit=1`);
+            const dbData = await dbResponse.json();
+            
+            if (dbData.success && dbData.data && dbData.data.length > 0) {
+              const company = dbData.data[0];
+              console.log(`✅ Found company analysis: ${company.company_name} (ID: ${company.id})`);
+              
+              setTimeout(() => {
+                setIsJobRunning(false);
+                router.push(`/dashboard/companies/${company.id}`);
+              }, 1500);
             } else {
-              // Fallback to companies list
-              router.push('/dashboard/companies');
+              console.log(`⚠️ Company analysis not found, using fallback navigation`);
+              setTimeout(() => {
+                setIsJobRunning(false);
+                router.push('/dashboard/companies');
+              }, 1500);
             }
-          }, 1500);
+          } catch (navError) {
+            console.error(`💥 Navigation error:`, navError);
+            setTimeout(() => {
+              setIsJobRunning(false);
+              router.push('/dashboard/companies');
+            }, 1500);
+          }
           
         } else if (status.status === 'failed') {
           console.error(`💥 Job failed:`, status.error_message);
           setJobError(status.error_message || 'Analysis failed');
-          setJobStatus("Analysis failed");
+          setJobStatus("failed");
+          stopElapsedTimer();
           
           // Stop polling
           if (pollingIntervalRef.current) {
@@ -124,13 +201,44 @@ export function UnifiedSearch({
         }
         
       } catch (error) {
-        console.error(`💥 Error polling job status:`, error);
-        setJobError('Failed to check analysis progress');
+        console.error(`💥 Error polling job status via API:`, error);
         
-        // Stop polling on error
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+        // Fallback: Check database directly
+        try {
+          console.log(`🔍 API failed, checking database directly for job ${jobId}`);
+          const dbResponse = await fetch(`/api/db/async-jobs/by-id/${jobId}`);
+          const dbData = await dbResponse.json();
+          
+          if (dbData.success && dbData.data) {
+            console.log(`📊 Database job status:`, dbData.data.status);
+            
+            if (dbData.data.status === 'completed') {
+              setJobStatus("completed");
+              stopElapsedTimer();
+              
+              // Stop polling
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+              
+              // Navigate using company name
+              setTimeout(() => {
+                setIsJobRunning(false);
+                router.push('/dashboard/companies');
+              }, 1500);
+            }
+          }
+        } catch (dbError) {
+          console.error(`💥 Database fallback also failed:`, dbError);
+          setJobError('Failed to check analysis progress');
+          stopElapsedTimer();
+          
+          // Stop polling on error
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
         }
       }
     }, 3000); // Poll every 3 seconds
@@ -142,12 +250,54 @@ export function UnifiedSearch({
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
+    stopElapsedTimer();
     setIsJobRunning(false);
     setCurrentJobId(null);
-    setJobProgress(0);
     setJobStatus("");
     setJobCompanyName("");
     setJobError(null);
+    setJobStartTime(null);
+    setElapsedTime("0s");
+  };
+  
+  // Get status-based UI indicators
+  const getStatusIndicator = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return {
+          icon: <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>,
+          message: "Initializing analysis...",
+          description: "Setting up AI analysis pipeline"
+        };
+      case 'running':
+        return {
+          icon: <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />,
+          message: "AI analysis in progress...",
+          description: "Gathering and analyzing company data"
+        };
+      case 'completed':
+        return {
+          icon: <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />,
+          message: "Analysis complete!",
+          description: "Redirecting to results..."
+        };
+      case 'failed':
+        return {
+          icon: <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />,
+          message: "Analysis failed",
+          description: "Please try again or contact support"
+        };
+      default:
+        return {
+          icon: <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />,
+          message: "Processing...",
+          description: "Please wait"
+        };
+    }
   };
   
   // Handle company selection (click on result)
@@ -388,44 +538,51 @@ export function UnifiedSearch({
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{jobStatus}</span>
-                <span className="font-mono text-xs">{jobProgress}%</span>
-              </div>
-              <Progress value={jobProgress} className="h-2" />
+            {/* Elapsed Time */}
+            <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+              <span className="text-sm text-muted-foreground">Elapsed Time</span>
+              <span className="font-mono text-sm font-medium">{elapsedTime}</span>
             </div>
             
-            {/* Status Icon and Message */}
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              {jobError ? (
-                <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-              ) : jobProgress === 100 ? (
-                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-              ) : (
-                <Loader2 className="h-5 w-5 text-blue-500 animate-spin flex-shrink-0" />
+            {/* Status Indicator */}
+            {(() => {
+              const indicator = getStatusIndicator(jobError ? 'failed' : jobStatus);
+              return (
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                  {indicator.icon}
+                  
+                  <div className="flex-1 min-w-0">
+                    {jobError ? (
+                      <div>
+                        <p className="text-sm font-medium text-red-600">{indicator.message}</p>
+                        <p className="text-xs text-red-500">{jobError}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-sm font-medium">{indicator.message}</p>
+                        <p className="text-xs text-muted-foreground">{indicator.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+            
+            {/* Job Details */}
+            <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Company</span>
+                <span className="font-medium">{jobCompanyName}</span>
+              </div>
+              {currentJobId && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Job ID</span>
+                  <span className="font-mono">{currentJobId.substring(0, 12)}...</span>
+                </div>
               )}
-              
-              <div className="flex-1 min-w-0">
-                {jobError ? (
-                  <div>
-                    <p className="text-sm font-medium text-red-600">Analysis Failed</p>
-                    <p className="text-xs text-red-500">{jobError}</p>
-                  </div>
-                ) : jobProgress === 100 ? (
-                  <div>
-                    <p className="text-sm font-medium text-green-600">Analysis Complete!</p>
-                    <p className="text-xs text-muted-foreground">Redirecting to results...</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm font-medium">Analyzing {jobCompanyName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {currentJobId && <span className="font-mono">Job ID: {currentJobId.substring(0, 8)}...</span>}
-                    </p>
-                  </div>
-                )}
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Status</span>
+                <span className="font-medium capitalize">{jobError ? 'failed' : jobStatus}</span>
               </div>
             </div>
             
@@ -436,7 +593,7 @@ export function UnifiedSearch({
                   Close
                 </Button>
               )}
-              {!jobError && jobProgress < 100 && (
+              {!jobError && jobStatus !== 'completed' && (
                 <Button variant="outline" size="sm" onClick={stopJobPolling}>
                   Cancel Analysis
                 </Button>
