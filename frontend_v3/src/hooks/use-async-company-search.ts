@@ -132,21 +132,122 @@ export function useAsyncCompanySearch(): [AsyncSearchState, AsyncSearchActions] 
         progress: 'Starting AI analysis...',
       }));
 
-      const newJobResponse = await api.searchCompanyAsync({ company_name: companyName });
-      
-      setState(prev => ({
-        ...prev,
-        jobId: newJobResponse.job_id,
-        status: newJobResponse.status,
-        progress: newJobResponse.progress_message || 'AI analysis in progress...',
-        estimatedCompletion: newJobResponse.estimated_completion || null,
-      }));
+      try {
+        const newJobResponse = await api.searchCompanyAsync({ company_name: companyName });
+        
+        setState(prev => ({
+          ...prev,
+          jobId: newJobResponse.job_id,
+          status: newJobResponse.status,
+          progress: newJobResponse.progress_message || 'AI analysis in progress...',
+          estimatedCompletion: newJobResponse.estimated_completion || null,
+        }));
 
-      // Start polling for NEW job only
-      pollingRef.current = true;
-      pollForCompletion(newJobResponse.job_id);
+        // Start polling for NEW job only
+        pollingRef.current = true;
+        pollForCompletion(newJobResponse.job_id);
+        
+      } catch (backendError: any) {
+        // Enhanced backend error debugging
+        console.error(`💥 Backend API error for "${companyName}":`, {
+          error: backendError,
+          status: backendError?.status,
+          response: backendError?.response,
+          responseStatus: backendError?.response?.status,
+          responseData: backendError?.response?.data,
+          message: backendError?.message,
+          name: backendError?.name,
+          stack: backendError?.stack?.substring(0, 500) // First 500 chars of stack trace
+        });
+        
+        // Log raw error object to see all properties
+        console.log('🔍 Raw backend error object:', backendError);
+        
+        // Try to extract response data if available
+        if (backendError?.response?.data) {
+          console.log('📊 Backend response data:', backendError.response.data);
+        }
+        
+        // Check if this is a 422 "already exists" error
+        const is422Error = backendError?.status === 422 || 
+                          backendError?.response?.status === 422 || 
+                          (backendError instanceof Error && backendError.message.includes('422'));
+        
+        console.log(`🔍 Is 422 error check:`, {
+          is422Error,
+          directStatus: backendError?.status,
+          responseStatus: backendError?.response?.status,
+          messageContains422: backendError instanceof Error && backendError.message.includes('422')
+        });
+        
+        if (is422Error) {
+          
+          console.log(`🔄 422 Error detected - backend says "${companyName}" already exists, retrying database search...`);
+          
+          setState(prev => ({
+            ...prev,
+            progress: 'Backend says company exists, searching database again...',
+          }));
+          
+          // STEP 3.1: Ultra-broad database search since backend says company exists
+          try {
+            // Try broader search with multiple name variations
+            const ultraBroadSearch = await fetch(`/api/db/companies?search=${encodeURIComponent(companyName)}&limit=10`);
+            const ultraBroadData = await ultraBroadSearch.json();
+            
+            console.log(`🔍 Ultra-broad search results for "${companyName}":`, ultraBroadData);
+            
+            if (ultraBroadData.success && ultraBroadData.data && ultraBroadData.data.length > 0) {
+              // Found it with broader search!
+              const foundCompany = ultraBroadData.data[0];
+              console.log(`✅ Found "${companyName}" with ultra-broad search:`, foundCompany.company_name);
+              
+              setState(prev => ({
+                ...prev,
+                isSearching: false,
+                result: foundCompany,
+                progress: 'Found existing company with enhanced search',
+                status: 'completed'
+              }));
+              return; // SUCCESS - found it after all
+            }
+            
+            // Still not found even with ultra-broad search
+            console.log(`❌ Ultra-broad search still didn't find "${companyName}" - this may be a backend sync issue`);
+            
+            setState(prev => ({
+              ...prev,
+              isSearching: false,
+              error: `Backend says "${companyName}" exists but database search cannot find it. This may indicate a sync issue between systems.`,
+              progress: 'Search completed with inconsistency detected',
+            }));
+            
+          } catch (ultraSearchError) {
+            console.error(`💥 Ultra-broad search failed for "${companyName}":`, ultraSearchError);
+            
+            setState(prev => ({
+              ...prev,
+              isSearching: false,
+              error: `Backend says "${companyName}" exists (422 error) but database search failed. Please try again or contact support.`,
+              progress: 'Search failed due to system inconsistency',
+            }));
+          }
+          
+        } else {
+          // Non-422 error - treat as regular backend failure
+          console.error(`💥 Non-422 backend error for "${companyName}":`, backendError);
+          
+          setState(prev => ({
+            ...prev,
+            isSearching: false,
+            error: backendError instanceof Error ? backendError.message : 'Backend analysis service unavailable',
+            progress: 'Analysis service unavailable',
+          }));
+        }
+      }
 
     } catch (error) {
+      console.error(`💥 Unexpected error in startSearch for "${companyName}":`, error);
       setState(prev => ({
         ...prev,
         isSearching: false,

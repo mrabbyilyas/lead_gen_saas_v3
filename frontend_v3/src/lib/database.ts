@@ -375,14 +375,20 @@ class DatabaseService {
     }
   }
 
-  // Search companies by name with fuzzy matching (using connection pool)
+  // Enhanced fuzzy search for companies with comprehensive name matching
   async searchCompaniesByName(searchTerm: string, limit: number = 20): Promise<CompanyAnalysis[]> {
     try {
-      console.log('🔍 DEBUG: searchCompaniesByName called with term:', searchTerm, 'limit:', limit);
+      console.log('🔍 ENHANCED: searchCompaniesByName called with term:', searchTerm, 'limit:', limit);
       
       const start = Date.now();
       
-      // Fixed search query to match stats - no status filtering to show all companies
+      // Generate search variations for comprehensive matching
+      const baseTerm = searchTerm.trim();
+      const searchVariations = this.generateSearchVariations(baseTerm);
+      
+      console.log('🔍 ENHANCED: Generated search variations:', searchVariations);
+      
+      // Enhanced multi-pattern fuzzy search query
       const query = `
         SELECT 
           id,
@@ -392,45 +398,105 @@ class DatabaseService {
           analysis_result,
           status,
           created_at,
-          -- Calculate relevance score for sorting
+          -- Enhanced relevance scoring with multiple patterns
           CASE 
-            WHEN LOWER(company_name) = LOWER($2) THEN 100
-            WHEN LOWER(canonical_name) = LOWER($2) THEN 95
-            WHEN LOWER(company_name) ILIKE $1 THEN 80
-            WHEN LOWER(canonical_name) ILIKE $1 THEN 75
-            WHEN LOWER(search_query) ILIKE $1 THEN 60
+            -- Exact matches (highest priority)
+            WHEN LOWER(company_name) = LOWER($2) THEN 1000
+            WHEN LOWER(canonical_name) = LOWER($2) THEN 950
+            -- Exact with common suffixes  
+            WHEN LOWER(company_name) = LOWER($3) THEN 900
+            WHEN LOWER(company_name) = LOWER($4) THEN 890
+            WHEN LOWER(company_name) = LOWER($5) THEN 880
+            WHEN LOWER(canonical_name) = LOWER($3) THEN 870
+            WHEN LOWER(canonical_name) = LOWER($4) THEN 860
+            WHEN LOWER(canonical_name) = LOWER($5) THEN 850
+            -- Starts with matches
+            WHEN LOWER(company_name) ILIKE LOWER($6) THEN 800
+            WHEN LOWER(canonical_name) ILIKE LOWER($6) THEN 790
+            -- Contains matches  
+            WHEN LOWER(company_name) ILIKE LOWER($1) THEN 700
+            WHEN LOWER(canonical_name) ILIKE LOWER($1) THEN 690
+            WHEN LOWER(search_query) ILIKE LOWER($1) THEN 600
+            -- Partial word matches
+            WHEN LOWER(company_name) ILIKE LOWER($7) THEN 500
+            WHEN LOWER(canonical_name) ILIKE LOWER($7) THEN 490
             ELSE 0
           END as relevance_score
         FROM company_analysis
         WHERE (
-          LOWER(company_name) ILIKE $1 
-          OR LOWER(canonical_name) ILIKE $1
-          OR LOWER(search_query) ILIKE $1
-          OR LOWER(company_name) = LOWER($2)
-          OR LOWER(canonical_name) = LOWER($2)
+          -- Exact matches
+          LOWER(company_name) = LOWER($2) OR
+          LOWER(canonical_name) = LOWER($2) OR
+          -- Exact with suffixes
+          LOWER(company_name) = LOWER($3) OR
+          LOWER(company_name) = LOWER($4) OR  
+          LOWER(company_name) = LOWER($5) OR
+          LOWER(canonical_name) = LOWER($3) OR
+          LOWER(canonical_name) = LOWER($4) OR
+          LOWER(canonical_name) = LOWER($5) OR
+          -- Fuzzy matches
+          LOWER(company_name) ILIKE LOWER($1) OR
+          LOWER(canonical_name) ILIKE LOWER($1) OR
+          LOWER(search_query) ILIKE LOWER($1) OR
+          -- Starts with
+          LOWER(company_name) ILIKE LOWER($6) OR
+          LOWER(canonical_name) ILIKE LOWER($6) OR
+          -- Word boundary matches
+          LOWER(company_name) ILIKE LOWER($7) OR
+          LOWER(canonical_name) ILIKE LOWER($7)
         )
         ORDER BY 
           relevance_score DESC,
           created_at DESC
-        LIMIT $3
+        LIMIT $8
       `;
       
-      console.log('🔍 DEBUG: Search query SQL:', query);
+      // Enhanced search parameters with multiple variations
+      const searchPattern = `%${baseTerm}%`;           // %tesla%
+      const exactTerm = baseTerm;                      // tesla
+      const withInc = `${baseTerm} Inc`;               // tesla inc
+      const withIncDot = `${baseTerm} Inc.`;           // tesla inc.
+      const withCommaInc = `${baseTerm}, Inc.`;        // tesla, inc.
+      const startsWithPattern = `${baseTerm}%`;        // tesla%
+      const wordBoundaryPattern = `% ${baseTerm} %`;   // % tesla %
       
-      const searchPattern = `%${searchTerm.trim()}%`;
-      const exactTerm = searchTerm.trim();
+      const params = [
+        searchPattern,        // $1
+        exactTerm,           // $2
+        withInc,            // $3
+        withIncDot,         // $4
+        withCommaInc,       // $5
+        startsWithPattern,  // $6
+        wordBoundaryPattern, // $7
+        limit               // $8
+      ];
       
-      console.log('🔍 DEBUG: Search params:', { searchPattern, exactTerm, limit });
+      console.log('🔍 ENHANCED: Search params:', {
+        searchPattern,
+        exactTerm,
+        withInc,
+        withIncDot,
+        withCommaInc,
+        startsWithPattern,
+        wordBoundaryPattern,
+        limit
+      });
       
-      const result = await executeQuery(query, [searchPattern, exactTerm, limit]);
+      const result = await executeQuery(query, params);
       
       const queryDuration = Date.now() - start;
-      console.log(`🔍 Search query for "${searchTerm}" completed in ${queryDuration}ms (${result.rows.length} results)`);
+      console.log(`🔍 ENHANCED: Search query for "${searchTerm}" completed in ${queryDuration}ms (${result.rows.length} results)`);
       
-      console.log('🔍 DEBUG: Search results:', {
+      // Enhanced debugging with actual company names found
+      console.log('🔍 ENHANCED: Search results:', {
         rowCount: result.rows.length,
-        firstResult: result.rows[0],
-        allStatuses: result.rows.map(r => r.status),
+        companies: result.rows.map(r => ({
+          id: r.id,
+          company_name: r.company_name,
+          canonical_name: r.canonical_name,
+          relevance_score: r.relevance_score,
+          status: r.status
+        })),
         statusCounts: result.rows.reduce((acc, r) => {
           acc[r.status || 'null'] = (acc[r.status || 'null'] || 0) + 1;
           return acc;
@@ -448,7 +514,14 @@ class DatabaseService {
         revenue_range: this.extractRevenueRange(row.analysis_result)
       }));
       
-      console.log('🔍 DEBUG: Search mapped results count:', mappedResults.length);
+      console.log('🔍 ENHANCED: Search mapped results count:', mappedResults.length);
+      if (mappedResults.length > 0) {
+        console.log('🔍 ENHANCED: Top result:', {
+          company_name: mappedResults[0].company_name,
+          canonical_name: mappedResults[0].canonical_name,
+          relevance_score: (mappedResults[0] as any).relevance_score
+        });
+      }
       
       return mappedResults;
       
@@ -456,6 +529,30 @@ class DatabaseService {
       console.error('Error searching companies:', error);
       throw error;
     }
+  }
+
+  // Helper method to generate comprehensive search variations for fuzzy matching
+  private generateSearchVariations(baseTerm: string): string[] {
+    const variations = [
+      baseTerm,                           // tesla
+      `${baseTerm} Inc`,                  // tesla inc
+      `${baseTerm} Inc.`,                 // tesla inc.
+      `${baseTerm}, Inc.`,                // tesla, inc.
+      `${baseTerm} Corporation`,          // tesla corporation
+      `${baseTerm} Corp`,                 // tesla corp
+      `${baseTerm} Corp.`,                // tesla corp.
+      `${baseTerm} Company`,              // tesla company
+      `${baseTerm} Co`,                   // tesla co
+      `${baseTerm} Co.`,                  // tesla co.
+      `${baseTerm} LLC`,                  // tesla llc
+      `${baseTerm} Ltd`,                  // tesla ltd
+      `${baseTerm} Limited`,              // tesla limited
+      `${baseTerm} Motors`,               // tesla motors (specific for automotive)
+      `${baseTerm} Technologies`,         // tesla technologies
+      `${baseTerm} Tech`,                 // tesla tech
+    ];
+    
+    return variations;
   }
 
   // Get company by ID (using connection pool)
