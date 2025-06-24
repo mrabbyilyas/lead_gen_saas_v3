@@ -67,6 +67,18 @@ export interface DatabaseStats {
   recent_analyses_count: number;
 }
 
+// Async Job interface (matching async_jobs table schema)
+export interface AsyncJob {
+  job_id: string;
+  company_name: string;
+  status: string; // 'pending', 'processing', 'completed', 'failed'
+  result?: any; // JSONB object with analysis results
+  progress_message?: string | null;
+  error_message?: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
 // Singleton pool instance
 let pool: Pool | null = null;
 
@@ -531,6 +543,151 @@ class DatabaseService {
     } catch (error) {
       console.warn('Error extracting revenue from analysis_result:', error);
       return undefined;
+    }
+  }
+
+  // Get async job status by company name
+  async getAsyncJobByCompanyName(companyName: string): Promise<AsyncJob | null> {
+    try {
+      console.log(`🔍 Checking async job for company: "${companyName}"`);
+      
+      const query = `
+        SELECT 
+          job_id, 
+          company_name, 
+          status, 
+          result, 
+          progress_message,
+          error_message,
+          created_at, 
+          updated_at
+        FROM async_jobs 
+        WHERE LOWER(company_name) = LOWER($1)
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `;
+      
+      const result = await executeQuery(query, [companyName]);
+      
+      if (result.rows.length === 0) {
+        console.log(`❌ No async job found for company: "${companyName}"`);
+        return null;
+      }
+      
+      const job = result.rows[0];
+      console.log(`✅ Found async job for "${companyName}":`, {
+        job_id: job.job_id,
+        status: job.status,
+        created_at: job.created_at
+      });
+      
+      return job;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching async job for company "${companyName}":`, error);
+      throw error;
+    }
+  }
+
+  // Get async job status by job ID
+  async getAsyncJobById(jobId: string): Promise<AsyncJob | null> {
+    try {
+      console.log(`🔍 Checking async job by ID: ${jobId}`);
+      
+      const query = `
+        SELECT 
+          job_id, 
+          company_name, 
+          status, 
+          result, 
+          progress_message,
+          error_message,
+          created_at, 
+          updated_at
+        FROM async_jobs 
+        WHERE job_id = $1
+      `;
+      
+      const result = await executeQuery(query, [jobId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`❌ No async job found with ID: ${jobId}`);
+        return null;
+      }
+      
+      const job = result.rows[0];
+      console.log(`✅ Found async job ${jobId}:`, {
+        company_name: job.company_name,
+        status: job.status,
+        updated_at: job.updated_at
+      });
+      
+      return job;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching async job ${jobId}:`, error);
+      throw error;
+    }
+  }
+
+  // Check if company has completed analysis (in main table or async jobs)
+  async hasCompletedAnalysis(companyName: string): Promise<{ 
+    hasCompleted: boolean; 
+    source: string; 
+    data?: any 
+  }> {
+    try {
+      console.log(`🔍 Checking if "${companyName}" has completed analysis`);
+      
+      // First check company_analysis table (main table)
+      const companyQuery = `
+        SELECT id, company_name, analysis_result, created_at 
+        FROM company_analysis 
+        WHERE LOWER(company_name) = LOWER($1) 
+        LIMIT 1
+      `;
+      const companyResult = await executeQuery(companyQuery, [companyName]);
+      
+      if (companyResult.rows.length > 0) {
+        const company = companyResult.rows[0];
+        console.log(`✅ Found completed analysis in company_analysis table for "${companyName}"`);
+        return {
+          hasCompleted: true,
+          source: 'company_analysis_table',
+          data: company
+        };
+      }
+      
+      // Then check async_jobs for completed jobs
+      const jobQuery = `
+        SELECT job_id, company_name, status, result, updated_at
+        FROM async_jobs 
+        WHERE LOWER(company_name) = LOWER($1) 
+        AND status = 'completed'
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `;
+      const jobResult = await executeQuery(jobQuery, [companyName]);
+      
+      if (jobResult.rows.length > 0) {
+        const job = jobResult.rows[0];
+        console.log(`✅ Found completed async job for "${companyName}"`);
+        return {
+          hasCompleted: true,
+          source: 'async_jobs_table',
+          data: job
+        };
+      }
+      
+      console.log(`❌ No completed analysis found for "${companyName}"`);
+      return {
+        hasCompleted: false,
+        source: 'not_found'
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error checking completed analysis for "${companyName}":`, error);
+      throw error;
     }
   }
 
