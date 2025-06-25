@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Brain, BarChart3, Target, Globe, Zap, Shield, Search, Database, TrendingUp, CheckCircle, Star, Award, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function Home() {
   return (
@@ -470,6 +471,8 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* Profile Card */}
+        <ProfileCard />
       </footer>
     </div>
   );

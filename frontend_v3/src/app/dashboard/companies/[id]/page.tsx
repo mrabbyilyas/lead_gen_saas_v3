@@ -23,6 +23,7 @@ import { Building2, ArrowLeft, Download, FileText, Calendar, Target, TrendingUp,
 import { useDirectCompany } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { calculateAIScore, formatAIScore, getScoreColor, getScoreBadgeVariant } from "@/lib/ai-score";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function CompanyDetailPage() {
   const params = useParams();
@@ -879,6 +880,9 @@ export default function CompanyDetailPage() {
           )}
         </div>
       </SidebarInset>
+      
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }

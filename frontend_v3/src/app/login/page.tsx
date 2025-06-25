@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Brain, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/lib/api";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -189,6 +190,8 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
+      {/* Profile Card */}
+      <ProfileCard />
     </div>
   );
 }

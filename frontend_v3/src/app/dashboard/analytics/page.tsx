@@ -22,6 +22,7 @@ import { BarChart3, TrendingUp, TrendingDown, Users, Building2, Target, ArrowUpR
 import { useDirectDashboardStats, useDirectCompanies } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
 import { calculateAIScore } from "@/lib/ai-score";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function AnalyticsPage() {
   // Fetch dashboard statistics and company data
@@ -360,6 +361,8 @@ export default function AnalyticsPage() {
           </Card>
         </div>
       </SidebarInset>
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }

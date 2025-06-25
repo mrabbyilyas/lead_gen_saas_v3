@@ -30,6 +30,7 @@ import { UnifiedSearch } from "@/components/unified-search";
 import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function CompaniesPage() {
   const router = useRouter();
@@ -359,6 +360,9 @@ export default function CompaniesPage() {
           </Card>
         </div>
       </SidebarInset>
+      
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }

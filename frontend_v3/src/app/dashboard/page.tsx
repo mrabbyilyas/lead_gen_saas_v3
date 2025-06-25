@@ -28,6 +28,7 @@ import { UnifiedSearch } from "@/components/unified-search";
 import { DatabaseStatus } from "@/components/database-status";
 import { exportToCSV, exportToJSON, exportSummaryStats } from "@/lib/export";
 import { calculateAIScore, formatAIScore, getScoreBadgeVariant } from "@/lib/ai-score";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -387,6 +388,9 @@ export default function DashboardPage() {
           </Card>
         </div>
       </SidebarInset>
+      
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }

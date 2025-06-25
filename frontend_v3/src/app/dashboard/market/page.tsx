@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TrendingUp, TrendingDown, DollarSign, Building2, Users, BarChart3, Globe, RefreshCw, Download } from "lucide-react";
 import { useDirectCompanies, useDirectDashboardStats } from "@/hooks/use-direct-company-data";
 import { SystemStatusIndicator } from "@/components/system-status";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function MarketPage() {
   // Fetch companies data for market analysis
@@ -445,6 +446,8 @@ export default function MarketPage() {
           </Card>
         </div>
       </SidebarInset>
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }

@@ -25,6 +25,7 @@ import { DatabaseTestPanel } from "@/components/db-test-panel";
 import { DatabaseStatus } from "@/components/database-status";
 import { HybridCompaniesPage } from "@/components/hybrid-companies-page";
 import { useDirectCompanies, useDirectDashboardStats } from "@/hooks/use-direct-company-data";
+import { ProfileCard } from "@/components/profile-card";
 
 export default function DatabaseTestPage() {
   const { data: companiesData, isLoading: companiesLoading, error: companiesError } = useDirectCompanies(undefined, 5);
@@ -221,6 +222,8 @@ export default function DatabaseTestPage() {
           </Card>
         </div>
       </SidebarInset>
+      {/* Profile Card */}
+      <ProfileCard />
     </SidebarProvider>
   );
 }
