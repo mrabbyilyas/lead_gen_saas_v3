@@ -471,9 +471,9 @@ export default function Home() {
             </div>
           </div>
         </div>
-        {/* Profile Card */}
-        <ProfileCard />
       </footer>
+      {/* Profile Card */}
+      <ProfileCard />
     </div>
   );
 }
