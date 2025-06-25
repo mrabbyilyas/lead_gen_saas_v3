@@ -183,11 +183,6 @@ export default function CompaniesPage() {
             </div>
           </div>
 
-          {/* Unified Search Section */}
-          <UnifiedSearch 
-            placeholder="Search for any company (database first, then AI analysis if needed)..."
-            showResults={true}
-          />
 
           {/* Database Search Section */}
           <Card>
