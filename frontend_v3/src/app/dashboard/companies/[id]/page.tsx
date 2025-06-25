@@ -162,7 +162,7 @@ export default function CompanyDetailPage() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">AI Score</CardTitle>
@@ -250,14 +250,14 @@ export default function CompanyDetailPage() {
                     return (
                       <div className="text-center py-8">
                         <div className="mb-4">
-                          <div className="text-4xl font-bold text-blue-600">
+                          <div className="text-4xl font-bold text-blue-600 break-words">
                             {company.formatted_ai_score || formatAIScore(scoreBreakdown.total)}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-2">
+                          <p className="text-sm text-muted-foreground mt-2 break-words">
                             {scoreBreakdown.simpleScoreType === 'diversity' ? 'Diversity-based AI Score' : 'Simple AI Score'}
                           </p>
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground break-words leading-relaxed">
                           This score is based on a single metric and doesn't have component breakdown.
                         </div>
                       </div>
@@ -292,7 +292,7 @@ export default function CompanyDetailPage() {
                             <div className="text-lg font-bold text-green-600">
                               {scoreBreakdown.financial.toFixed(1)}/10.0
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {company.analysis_result?.financial_metrics?.profitability_metrics?.net_profit_margin}% margin
                             </p>
                           </div>
@@ -308,7 +308,7 @@ export default function CompanyDetailPage() {
                             <div className="text-lg font-bold text-blue-600">
                               {scoreBreakdown.market.toFixed(1)}/10.0
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {company.analysis_result?.market_competition?.market_data?.current_market_share}% share
                             </p>
                           </div>
@@ -324,7 +324,7 @@ export default function CompanyDetailPage() {
                             <div className="text-lg font-bold text-purple-600">
                               {scoreBreakdown.innovation.toFixed(1)}/10.0
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {company.analysis_result?.technology_operations?.rd_innovation?.innovation_score}/5 R&D score
                             </p>
                           </div>
@@ -340,7 +340,7 @@ export default function CompanyDetailPage() {
                             <div className="text-lg font-bold text-green-700">
                               {scoreBreakdown.esg.toFixed(1)}/10.0
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {company.analysis_result?.esg_risk?.environmental?.sustainability_score}/100 sustainability
                             </p>
                           </div>
@@ -356,7 +356,7 @@ export default function CompanyDetailPage() {
                             <div className="text-lg font-bold text-orange-600">
                               {scoreBreakdown.moat.toFixed(1)}/10.0
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground break-words">
                               {company.analysis_result?.market_competition?.competitive_analysis?.moat_strength}/5 strength
                             </p>
                           </div>
@@ -379,33 +379,33 @@ export default function CompanyDetailPage() {
           )}
 
           {/* Analysis Details */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Basic Information */}
             <Card>
               <CardHeader>
                 <CardTitle>Company Information</CardTitle>
                 <CardDescription>Basic company details and metadata</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="font-medium">Company Name:</span>
-                  <span>{company.company_name}</span>
+              <CardContent className="space-y-4 p-6 overflow-hidden">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-medium text-nowrap">Company Name:</span>
+                  <span className="break-words text-right ml-auto max-w-[60%]">{company.company_name}</span>
                 </div>
                 {company.canonical_name && (
-                  <div className="flex justify-between">
-                    <span className="font-medium">Canonical Name:</span>
-                    <span>{company.canonical_name}</span>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-medium text-nowrap">Canonical Name:</span>
+                    <span className="break-words text-right ml-auto max-w-[60%]">{company.canonical_name}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="font-medium">Search Query:</span>
-                  <span>{company.search_query}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-medium text-nowrap">Search Query:</span>
+                  <span className="break-words text-right ml-auto max-w-[60%]">{company.search_query}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Analysis Date:</span>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(company.created_at.toString())}</span>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-medium text-nowrap">Analysis Date:</span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm break-words">{formatDate(company.created_at.toString())}</span>
                   </div>
                 </div>
               </CardContent>
@@ -417,32 +417,32 @@ export default function CompanyDetailPage() {
                 <CardTitle>Analysis Metrics</CardTitle>
                 <CardDescription>AI-generated insights and scores</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-6 overflow-hidden">
                 {analysisData ? (
                   <>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Diversity Score:</span>
-                      <Badge variant="outline">{analysisData.diversityScore}/10</Badge>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-nowrap">Diversity Score:</span>
+                      <Badge variant="outline" className="ml-auto">{analysisData.diversityScore}/10</Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Community Investment:</span>
-                      <Badge variant="outline">{analysisData.communityInvestment}/10</Badge>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-nowrap">Community Investment:</span>
+                      <Badge variant="outline" className="ml-auto">{analysisData.communityInvestment}/10</Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Market Position:</span>
-                      <span>{analysisData.marketPosition}</span>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-nowrap">Market Position:</span>
+                      <span className="break-words text-right ml-auto max-w-[60%]">{analysisData.marketPosition}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Growth Potential:</span>
-                      <span>{analysisData.growthPotential}</span>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-nowrap">Growth Potential:</span>
+                      <span className="break-words text-right ml-auto max-w-[60%]">{analysisData.growthPotential}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Risk Assessment:</span>
-                      <span>{analysisData.riskAssessment}</span>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="font-medium text-nowrap">Risk Assessment:</span>
+                      <span className="break-words text-right ml-auto max-w-[60%]">{analysisData.riskAssessment}</span>
                     </div>
                   </>
                 ) : (
-                  <p className="text-muted-foreground">No detailed analysis data available</p>
+                  <p className="text-muted-foreground break-words">No detailed analysis data available</p>
                 )}
               </CardContent>
             </Card>
@@ -462,16 +462,16 @@ export default function CompanyDetailPage() {
                     <CardDescription>Key financial metrics and performance indicators</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-6 md:grid-cols-3 place-items-center">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 place-items-center">
                       {company.analysis_result.financial_metrics.revenue_data && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 text-center max-w-full">
                           <h4 className="font-medium text-sm">Revenue</h4>
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-2xl font-bold text-green-600 break-words">
                             ${(company.analysis_result.financial_metrics.revenue_data.current_year_revenue / 1000000000).toFixed(1)}B
                           </div>
                           <p className="text-xs text-muted-foreground">Current Year</p>
                           {company.analysis_result.financial_metrics.revenue_data.revenue_cagr_5_year && (
-                            <p className="text-xs text-green-600">
+                            <p className="text-xs text-green-600 break-words">
                               {company.analysis_result.financial_metrics.revenue_data.revenue_cagr_5_year}% CAGR (5Y)
                             </p>
                           )}
@@ -479,26 +479,26 @@ export default function CompanyDetailPage() {
                       )}
                       
                       {company.analysis_result.financial_metrics.profitability_metrics && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 text-center max-w-full">
                           <h4 className="font-medium text-sm">Profitability</h4>
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-2xl font-bold text-blue-600 break-words">
                             {company.analysis_result.financial_metrics.profitability_metrics.net_profit_margin}%
                           </div>
                           <p className="text-xs text-muted-foreground">Net Margin</p>
-                          <p className="text-xs text-blue-600">
+                          <p className="text-xs text-blue-600 break-words">
                             ${(company.analysis_result.financial_metrics.profitability_metrics.net_income / 1000000000).toFixed(1)}B Net Income
                           </p>
                         </div>
                       )}
                       
                       {company.analysis_result.financial_metrics.balance_sheet && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 text-center max-w-full">
                           <h4 className="font-medium text-sm">Balance Sheet</h4>
-                          <div className="text-2xl font-bold text-purple-600">
+                          <div className="text-2xl font-bold text-purple-600 break-words">
                             {company.analysis_result.financial_metrics.balance_sheet.current_ratio}
                           </div>
                           <p className="text-xs text-muted-foreground">Current Ratio</p>
-                          <p className="text-xs text-purple-600">
+                          <p className="text-xs text-purple-600 break-words">
                             ${(company.analysis_result.financial_metrics.balance_sheet.cash_and_equivalents / 1000000000).toFixed(1)}B Cash
                           </p>
                         </div>
@@ -518,56 +518,56 @@ export default function CompanyDetailPage() {
                     </CardTitle>
                     <CardDescription>Market analysis and competitive landscape</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-6 md:grid-cols-3">
+                  <CardContent className="p-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {/* Market Position Card */}
-                      <div className="p-4 border rounded-lg bg-muted/30">
-                        <h4 className="font-medium mb-3 text-center">Market Position</h4>
-                        <div className="text-center mb-3">
-                          <Badge variant="outline" className="mb-2">
+                      <div className="p-5 border rounded-lg bg-muted/30 overflow-hidden">
+                        <h4 className="font-medium mb-4 text-center">Market Position</h4>
+                        <div className="text-center mb-4">
+                          <Badge variant="outline" className="mb-2 break-words">
                             {company.analysis_result.market_competition.market_data?.market_position || 'Not Available'}
                           </Badge>
                         </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center">
-                            <span>Market Share:</span>
-                            <span className="font-bold">{company.analysis_result.market_competition.market_data?.current_market_share}%</span>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-nowrap">Market Share:</span>
+                            <span className="font-bold ml-auto">{company.analysis_result.market_competition.market_data?.current_market_share}%</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span>Market Rank:</span>
-                            <span className="font-bold">#{company.analysis_result.market_competition.market_data?.market_share_rank}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-nowrap">Market Rank:</span>
+                            <span className="font-bold ml-auto">#{company.analysis_result.market_competition.market_data?.market_share_rank}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span>Growth Rate:</span>
-                            <span className="font-bold text-green-600">{company.analysis_result.market_competition.market_data?.market_growth_rate}%</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-nowrap">Growth Rate:</span>
+                            <span className="font-bold text-green-600 ml-auto">{company.analysis_result.market_competition.market_data?.market_growth_rate}%</span>
                           </div>
                         </div>
                       </div>
                       
                       {/* Competitive Strength Card */}
-                      <div className="p-4 border rounded-lg bg-muted/30">
-                        <h4 className="font-medium mb-3 text-center">Competitive Strength</h4>
+                      <div className="p-5 border rounded-lg bg-muted/30 overflow-hidden">
+                        <h4 className="font-medium mb-4 text-center">Competitive Strength</h4>
                         <div className="space-y-3 text-sm">
-                          <div className="flex justify-between items-center">
-                            <span>Moat Strength:</span>
-                            <Badge variant="outline">{company.analysis_result.market_competition.competitive_analysis?.moat_strength}/5</Badge>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-nowrap">Moat Strength:</span>
+                            <Badge variant="outline" className="ml-auto">{company.analysis_result.market_competition.competitive_analysis?.moat_strength}/5</Badge>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span>Barriers to Entry:</span>
-                            <Badge variant="outline">{company.analysis_result.market_competition.competitive_analysis?.barriers_to_entry}/5</Badge>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-nowrap">Barriers to Entry:</span>
+                            <Badge variant="outline" className="ml-auto">{company.analysis_result.market_competition.competitive_analysis?.barriers_to_entry}/5</Badge>
                           </div>
                         </div>
                       </div>
                       
                       {/* Top Competitors Card */}
                       {company.analysis_result.market_competition.competitive_analysis?.direct_competitors && (
-                        <div className="p-4 border rounded-lg bg-muted/30">
-                          <h4 className="font-medium mb-3 text-center">Top Competitors</h4>
-                          <div className="space-y-2">
+                        <div className="p-5 border rounded-lg bg-muted/30 overflow-hidden">
+                          <h4 className="font-medium mb-4 text-center">Top Competitors</h4>
+                          <div className="space-y-3">
                             {company.analysis_result.market_competition.competitive_analysis.direct_competitors.slice(0, 3).map((competitor: any, index: number) => (
-                              <div key={index} className="flex justify-between items-center text-sm">
-                                <span className="font-medium">{competitor.name}</span>
-                                <span className="text-muted-foreground">{competitor.market_share}%</span>
+                              <div key={index} className="flex justify-between items-center text-sm gap-2">
+                                <span className="font-medium break-words">{competitor.name}</span>
+                                <span className="text-muted-foreground ml-auto">{competitor.market_share}%</span>
                               </div>
                             ))}
                           </div>
@@ -588,22 +588,22 @@ export default function CompanyDetailPage() {
                     </CardTitle>
                     <CardDescription>Environmental, Social, Governance metrics and risk analysis</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-6 md:grid-cols-3 mb-6">
+                  <CardContent className="p-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
                       {/* Environmental Card */}
                       {company.analysis_result.esg_risk.environmental && (
-                        <div className="p-4 border rounded-lg bg-green-50/50">
-                          <h4 className="font-medium text-green-700 mb-3 text-center">Environmental</h4>
+                        <div className="p-5 border rounded-lg bg-green-50/50 overflow-hidden">
+                          <h4 className="font-medium text-green-700 mb-4 text-center">Environmental</h4>
                           <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                              <span>Sustainability Score:</span>
-                              <Badge variant="outline" className="text-green-600">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-nowrap">Sustainability Score:</span>
+                              <Badge variant="outline" className="text-green-600 ml-auto">
                                 {company.analysis_result.esg_risk.environmental.sustainability_score}/100
                               </Badge>
                             </div>
-                            <div className="text-center">
+                            <div className="text-center mt-3">
                               <span className="text-xs text-muted-foreground">ESG Alignment:</span>
-                              <p className="text-xs font-medium">{company.analysis_result.esg_risk.environmental.esg_alignment}</p>
+                              <p className="text-xs font-medium mt-1 break-words">{company.analysis_result.esg_risk.environmental.esg_alignment}</p>
                             </div>
                           </div>
                         </div>
@@ -611,16 +611,16 @@ export default function CompanyDetailPage() {
                       
                       {/* Social Card */}
                       {company.analysis_result.esg_risk.social && (
-                        <div className="p-4 border rounded-lg bg-blue-50/50">
-                          <h4 className="font-medium text-blue-700 mb-3 text-center">Social</h4>
+                        <div className="p-5 border rounded-lg bg-blue-50/50 overflow-hidden">
+                          <h4 className="font-medium text-blue-700 mb-4 text-center">Social</h4>
                           <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                              <span>Diversity Score:</span>
-                              <Badge variant="outline">{company.analysis_result.esg_risk.social.diversity_score}/10</Badge>
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-nowrap">Diversity Score:</span>
+                              <Badge variant="outline" className="ml-auto">{company.analysis_result.esg_risk.social.diversity_score}/10</Badge>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span>Community Investment:</span>
-                              <Badge variant="outline">{company.analysis_result.esg_risk.social.community_investment}/10</Badge>
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-nowrap">Community Investment:</span>
+                              <Badge variant="outline" className="ml-auto">{company.analysis_result.esg_risk.social.community_investment}/10</Badge>
                             </div>
                           </div>
                         </div>
@@ -628,16 +628,16 @@ export default function CompanyDetailPage() {
                       
                       {/* Governance Card */}
                       {company.analysis_result.esg_risk.governance && (
-                        <div className="p-4 border rounded-lg bg-purple-50/50">
-                          <h4 className="font-medium text-purple-700 mb-3 text-center">Governance</h4>
+                        <div className="p-5 border rounded-lg bg-purple-50/50 overflow-hidden">
+                          <h4 className="font-medium text-purple-700 mb-4 text-center">Governance</h4>
                           <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                              <span>Governance Score:</span>
-                              <Badge variant="outline">{company.analysis_result.esg_risk.governance.governance_score}/100</Badge>
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-nowrap">Governance Score:</span>
+                              <Badge variant="outline" className="ml-auto">{company.analysis_result.esg_risk.governance.governance_score}/100</Badge>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span>Board Independence:</span>
-                              <Badge variant="outline">{company.analysis_result.esg_risk.governance.board_independence}/10</Badge>
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="text-nowrap">Board Independence:</span>
+                              <Badge variant="outline" className="ml-auto">{company.analysis_result.esg_risk.governance.board_independence}/10</Badge>
                             </div>
                           </div>
                         </div>
@@ -646,30 +646,30 @@ export default function CompanyDetailPage() {
                     
                     {/* Risk Assessment Section */}
                     {company.analysis_result.esg_risk.risk_assessment && (
-                      <div className="p-4 border rounded-lg bg-muted/30">
-                        <h4 className="font-medium mb-4 text-center">Risk Assessment</h4>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 text-sm">
-                          <div className="text-center">
-                            <p className="text-muted-foreground mb-1">Market Risk</p>
-                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.market_risk === 'Low' ? 'outline' : 'secondary'}>
+                      <div className="p-5 border rounded-lg bg-muted/30 overflow-hidden">
+                        <h4 className="font-medium mb-5 text-center">Risk Assessment</h4>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                          <div className="text-center space-y-2">
+                            <p className="text-muted-foreground text-xs">Market Risk</p>
+                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.market_risk === 'Low' ? 'outline' : 'secondary'} className="break-words">
                               {company.analysis_result.esg_risk.risk_assessment.market_risk}
                             </Badge>
                           </div>
-                          <div className="text-center">
-                            <p className="text-muted-foreground mb-1">Financial Risk</p>
-                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.financial_risk === 'Low' ? 'outline' : 'secondary'}>
+                          <div className="text-center space-y-2">
+                            <p className="text-muted-foreground text-xs">Financial Risk</p>
+                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.financial_risk === 'Low' ? 'outline' : 'secondary'} className="break-words">
                               {company.analysis_result.esg_risk.risk_assessment.financial_risk}
                             </Badge>
                           </div>
-                          <div className="text-center">
-                            <p className="text-muted-foreground mb-1">Operational Risk</p>
-                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.operational_risk === 'Low' ? 'outline' : 'secondary'}>
+                          <div className="text-center space-y-2">
+                            <p className="text-muted-foreground text-xs">Operational Risk</p>
+                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.operational_risk === 'Low' ? 'outline' : 'secondary'} className="break-words">
                               {company.analysis_result.esg_risk.risk_assessment.operational_risk}
                             </Badge>
                           </div>
-                          <div className="text-center">
-                            <p className="text-muted-foreground mb-1">Overall Risk</p>
-                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.overall_risk_level === 'Low' ? 'outline' : 'secondary'}>
+                          <div className="text-center space-y-2">
+                            <p className="text-muted-foreground text-xs">Overall Risk</p>
+                            <Badge variant={company.analysis_result.esg_risk.risk_assessment.overall_risk_level === 'Low' ? 'outline' : 'secondary'} className="break-words">
                               {company.analysis_result.esg_risk.risk_assessment.overall_risk_level}
                             </Badge>
                           </div>
@@ -690,35 +690,35 @@ export default function CompanyDetailPage() {
                     </CardTitle>
                     <CardDescription>Market intelligence and business insights</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-6 md:grid-cols-2">
+                  <CardContent className="p-6">
+                    <div className="grid gap-6 lg:grid-cols-2">
                       {/* Market Intelligence Sub-box */}
                       {company.analysis_result.business_intelligence.market_intelligence && (
-                        <div className="p-4 border rounded-lg bg-blue-50/50">
-                          <h4 className="font-medium text-green-700 mb-3 text-center">Market Intelligence</h4>
+                        <div className="p-5 border rounded-lg bg-blue-50/50 overflow-hidden">
+                          <h4 className="font-medium text-green-700 mb-4 text-center">Market Intelligence</h4>
                           <div className="space-y-4">
                             {company.analysis_result.business_intelligence.market_intelligence.growth_signals && (
                               <div>
-                                <h5 className="text-sm font-medium mb-2 text-green-700">Growth Signals</h5>
-                                <ul className="text-sm space-y-1 text-muted-foreground">
+                                <h5 className="text-sm font-medium mb-3 text-green-700">Growth Signals</h5>
+                                <ul className="text-sm space-y-2 text-muted-foreground">
                                   {company.analysis_result.business_intelligence.market_intelligence.growth_signals.slice(0, 3).map((signal: string, index: number) => (
                                     <li key={index} className="flex items-start gap-2">
-                                      <div className="w-1 h-1 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                      {signal}
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      <span className="break-words leading-relaxed">{signal}</span>
                                     </li>
                                   ))}
                                 </ul>
                               </div>
                             )}
                             
-                            <div className="grid gap-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>Digital Disruption Risk:</span>
-                                <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.digital_disruption_risk}</Badge>
+                            <div className="grid gap-3 text-sm">
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Digital Disruption Risk:</span>
+                                <Badge variant="outline" className="ml-auto">{company.analysis_result.business_intelligence.market_intelligence.digital_disruption_risk}</Badge>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Industry Consolidation:</span>
-                                <Badge variant="outline">{company.analysis_result.business_intelligence.market_intelligence.industry_consolidation_trend}</Badge>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Industry Consolidation:</span>
+                                <Badge variant="outline" className="ml-auto">{company.analysis_result.business_intelligence.market_intelligence.industry_consolidation_trend}</Badge>
                               </div>
                             </div>
                           </div>
@@ -727,28 +727,28 @@ export default function CompanyDetailPage() {
                       
                       {/* Lead Generation Intelligence Sub-box */}
                       {company.analysis_result.business_intelligence.lead_gen_intelligence && (
-                        <div className="p-4 border rounded-lg bg-green-50/50">
-                          <h4 className="font-medium text-blue-700 mb-3 text-center">Lead Generation Intelligence</h4>
+                        <div className="p-5 border rounded-lg bg-green-50/50 overflow-hidden">
+                          <h4 className="font-medium text-blue-700 mb-4 text-center">Lead Generation Intelligence</h4>
                           <div className="space-y-4">
-                            <div className="grid gap-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>Website Quality:</span>
-                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.website_quality_score}/10</Badge>
+                            <div className="grid gap-3 text-sm">
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Website Quality:</span>
+                                <Badge variant="outline" className="ml-auto">{company.analysis_result.business_intelligence.lead_gen_intelligence.website_quality_score}/10</Badge>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Social Media Activity:</span>
-                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.social_media_activity}</Badge>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Social Media Activity:</span>
+                                <Badge variant="outline" className="ml-auto break-words">{company.analysis_result.business_intelligence.lead_gen_intelligence.social_media_activity}</Badge>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Marketing Sophistication:</span>
-                                <Badge variant="outline">{company.analysis_result.business_intelligence.lead_gen_intelligence.marketing_sophistication}</Badge>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Marketing Sophistication:</span>
+                                <Badge variant="outline" className="ml-auto break-words">{company.analysis_result.business_intelligence.lead_gen_intelligence.marketing_sophistication}</Badge>
                               </div>
                             </div>
                             
                             {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach && (
-                              <div>
+                              <div className="mt-4">
                                 <h5 className="text-sm font-medium mb-2 text-blue-700">Recommended Approach</h5>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground leading-relaxed break-words hyphens-auto">
                                   {company.analysis_result.business_intelligence.lead_gen_intelligence.recommended_approach}
                                 </p>
                               </div>
@@ -762,7 +762,7 @@ export default function CompanyDetailPage() {
               )}
 
               {/* Leadership & Technology */}
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 lg:grid-cols-2">
                 {/* Leadership */}
                 {company.analysis_result.leadership_management && (
                   <Card>
@@ -773,42 +773,42 @@ export default function CompanyDetailPage() {
                       </CardTitle>
                       <CardDescription>Executive team and organizational metrics</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6 overflow-hidden">
                       {company.analysis_result.leadership_management.executives && (
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           <div>
-                            <h4 className="font-medium mb-2">Executive Team</h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>CEO:</span>
-                                <span className="font-medium">{company.analysis_result.leadership_management.executives.ceo_name}</span>
+                            <h4 className="font-medium mb-3">Executive Team</h4>
+                            <div className="space-y-3 text-sm">
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">CEO:</span>
+                                <span className="font-medium break-words ml-auto text-right">{company.analysis_result.leadership_management.executives.ceo_name}</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>CEO Tenure:</span>
-                                <span>{company.analysis_result.leadership_management.executives.ceo_tenure_years} years</span>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">CEO Tenure:</span>
+                                <span className="ml-auto">{company.analysis_result.leadership_management.executives.ceo_tenure_years} years</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>CEO Age:</span>
-                                <span>{company.analysis_result.leadership_management.executives.ceo_age}</span>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">CEO Age:</span>
+                                <span className="ml-auto">{company.analysis_result.leadership_management.executives.ceo_age}</span>
                               </div>
                             </div>
                           </div>
                           
                           {company.analysis_result.leadership_management.team_metrics && (
                             <div>
-                              <h4 className="font-medium mb-2">Team Metrics</h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Glassdoor Rating:</span>
-                                  <Badge variant="outline">{company.analysis_result.leadership_management.team_metrics.glassdoor_rating}/5.0</Badge>
+                              <h4 className="font-medium mb-3">Team Metrics</h4>
+                              <div className="space-y-3 text-sm">
+                                <div className="flex justify-between items-center gap-2">
+                                  <span className="text-nowrap">Glassdoor Rating:</span>
+                                  <Badge variant="outline" className="ml-auto">{company.analysis_result.leadership_management.team_metrics.glassdoor_rating}/5.0</Badge>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>Avg Tenure:</span>
-                                  <span>{company.analysis_result.leadership_management.team_metrics.average_tenure_years} years</span>
+                                <div className="flex justify-between items-center gap-2">
+                                  <span className="text-nowrap">Avg Tenure:</span>
+                                  <span className="ml-auto">{company.analysis_result.leadership_management.team_metrics.average_tenure_years} years</span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>Management Stability:</span>
-                                  <span className="text-xs">{company.analysis_result.leadership_management.team_metrics.management_stability}</span>
+                                <div className="flex justify-between items-center gap-2">
+                                  <span className="text-nowrap">Management Stability:</span>
+                                  <span className="text-xs break-words ml-auto text-right max-w-[60%]">{company.analysis_result.leadership_management.team_metrics.management_stability}</span>
                                 </div>
                               </div>
                             </div>
@@ -829,42 +829,42 @@ export default function CompanyDetailPage() {
                       </CardTitle>
                       <CardDescription>R&D investment and technology infrastructure</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6 overflow-hidden">
                       {company.analysis_result.technology_operations.rd_innovation && (
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           <div>
-                            <h4 className="font-medium mb-2">R&D Investment</h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span>R&D Spending:</span>
-                                <span className="font-medium">${(company.analysis_result.technology_operations.rd_innovation.rd_spending / 1000000000).toFixed(1)}B</span>
+                            <h4 className="font-medium mb-3">R&D Investment</h4>
+                            <div className="space-y-3 text-sm">
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">R&D Spending:</span>
+                                <span className="font-medium ml-auto">${(company.analysis_result.technology_operations.rd_innovation.rd_spending / 1000000000).toFixed(1)}B</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>% of Revenue:</span>
-                                <span>{company.analysis_result.technology_operations.rd_innovation.rd_percent_revenue}%</span>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">% of Revenue:</span>
+                                <span className="ml-auto">{company.analysis_result.technology_operations.rd_innovation.rd_percent_revenue}%</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Patents Held:</span>
-                                <span>{company.analysis_result.technology_operations.rd_innovation.patents_held?.toLocaleString()}</span>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Patents Held:</span>
+                                <span className="ml-auto">{company.analysis_result.technology_operations.rd_innovation.patents_held?.toLocaleString()}</span>
                               </div>
-                              <div className="flex justify-between">
-                                <span>Innovation Score:</span>
-                                <Badge variant="outline">{company.analysis_result.technology_operations.rd_innovation.innovation_score}/5</Badge>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-nowrap">Innovation Score:</span>
+                                <Badge variant="outline" className="ml-auto">{company.analysis_result.technology_operations.rd_innovation.innovation_score}/5</Badge>
                               </div>
                             </div>
                           </div>
                           
                           {company.analysis_result.technology_operations.infrastructure && (
                             <div>
-                              <h4 className="font-medium mb-2">Infrastructure</h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Scalability Score:</span>
-                                  <Badge variant="outline">{company.analysis_result.technology_operations.infrastructure.scalability_score}/5</Badge>
+                              <h4 className="font-medium mb-3">Infrastructure</h4>
+                              <div className="space-y-3 text-sm">
+                                <div className="flex justify-between items-center gap-2">
+                                  <span className="text-nowrap">Scalability Score:</span>
+                                  <Badge variant="outline" className="ml-auto">{company.analysis_result.technology_operations.infrastructure.scalability_score}/5</Badge>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground">Type:</span>
-                                  <p className="text-xs mt-1">{company.analysis_result.technology_operations.infrastructure.infrastructure_type}</p>
+                                  <span className="text-muted-foreground text-xs">Infrastructure Type:</span>
+                                  <p className="text-xs mt-2 break-words leading-relaxed">{company.analysis_result.technology_operations.infrastructure.infrastructure_type}</p>
                                 </div>
                               </div>
                             </div>
