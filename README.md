@@ -5,27 +5,24 @@
 [![Backend API](https://img.shields.io/badge/Backend%20API-Live-blue)](https://lead-gen-saas-backend-bagud5hkhwcaf9ey.canadacentral-01.azurewebsites.net)
 
 ## 🚀 Executive Summary
-
-LeadIntel is a production-ready SaaS platform that revolutionizes how private equity firms identify and evaluate acquisition targets. Built specifically to address Caprae Capital's Search-as-a-Service bottlenecks, this platform transforms manual research processes into AI-powered company intelligence.
+LeadIntel is a production-ready SaaS platform that revolutionizes how private equity firms identify and evaluate acquisition targets. Built specifically to Search-as-a-Service bottlenecks, this platform transforms manual research processes into AI-powered company intelligence.
 
 **Live Platform:** https://lead-gen-saas-nu.vercel.app/
 
 ## 🎯 Business Impact
-
 ### Problem Solved
 - **Manual Research Bottleneck:** Eliminates 20+ hours/week of manual company research per analyst
 - **Scale Limitations:** Processes hundreds of companies vs. dozens through manual methods  
 - **Inconsistent Analysis:** Standardizes acquisition scoring with AI-powered evaluation
 - **Data Fragmentation:** Centralizes company intelligence with exportable workflows
 
-### Value Proposition for Caprae Capital
+### Value Proposition
 - **Direct Integration:** Seamlessly supports Search-as-a-Service and M&A-as-a-Service models
 - **Target Industry Focus:** Pre-configured for ITAD, MSPs, Healthcare, Financial Services
 - **Acquisition Readiness Scoring:** AI-powered evaluation of exit signals and company fit
 - **Enterprise Scalability:** Handles concurrent analysis across multiple industry verticals
 
 ## 🏗️ Technical Architecture
-
 ### Hybrid Cloud Infrastructure
 - **Frontend:** Next.js 15 with TypeScript, deployed on Vercel
 - **Backend:** FastAPI with async processing, deployed on Azure App Service  
@@ -40,16 +37,13 @@ LeadIntel is a production-ready SaaS platform that revolutionizes how private eq
 - **Weighted AI Scoring:** Multi-factor analysis (Financial 30%, Market 25%, Innovation 20%, ESG 15%, Moat 10%)
 
 ## 📊 Current Database
-
 **19+ Companies Analyzed** across target industries:
 - Anthropic, Google, Microsoft, Apple (AI/Technology)
 - Honda, Toyota, Ferrari, Ford (Automotive Manufacturing)  
 - Samsung, ASUSTeK (Electronics/Hardware)
 - Amazon AWS, Meta (Cloud/Social Media)
-- Caprae Capital Partners (Private Equity - Meta Analysis)
 
 ## 🛠️ Quick Start
-
 ### Prerequisites
 - Node.js 18+
 - PostgreSQL database
@@ -127,9 +121,9 @@ Uptime: 99.9% availability across frontend and backend services
 Concurrent Users: Supports multiple simultaneous analyses
 Data Integrity: Automated validation and consistency checks
 
-## 🎯 Business Alignment with Caprae Capital
+## 🎯 Business Alignment
 Search-as-a-Service Integration
-This platform directly supports Caprae's core business model by:
+This platform directly supports core business model by:
 
 Automating Deal Sourcing: Replaces manual research teams with AI-powered analysis
 Industry Specialization: Pre-configured for your target sectors (ITAD, MSPs, Healthcare)
@@ -137,15 +131,12 @@ Acquisition Readiness: Identifies baby boomer exits and succession planning sign
 Scalable Pipeline: Processes acquisition targets at venture-scale volumes
 
 ### Competitive Advantage
-
 Speed: Minutes vs. hours for comprehensive company analysis
 Consistency: Standardized evaluation criteria across all prospects
 Depth: AI-powered insights beyond basic company information
 Integration: Export-ready data for existing CRM and workflow systems
 
 ## 🔧 Development Philosophy
-Built with Caprae Capital's "horsepower over mileage" philosophy:
-
 Technical Excellence: Production-ready architecture from day one
 Business Impact: Solves real operational challenges, not just technical exercises
 Scalable Foundation: Enterprise-grade infrastructure supporting rapid growth
